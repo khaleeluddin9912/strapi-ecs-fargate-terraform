@@ -1,6 +1,6 @@
 # ECS Cluster
 resource "aws_ecs_cluster" "strapi_cluster" {
-  name = "strapi-cluster"
+  name = "khaleel-strapi-cluster"
 }
 
 # ECS Task Definition (Fargate Free-Tier Safe)
@@ -26,7 +26,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
 
 # ECS Service
 resource "aws_ecs_service" "strapi_service" {
-  name            = "strapi-service"
+  name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1

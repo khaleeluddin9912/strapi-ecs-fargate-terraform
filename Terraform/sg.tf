@@ -1,5 +1,5 @@
 resource "aws_security_group" "strapi_sg" {
-  name        = "strapi-sg"
+  name        = "khaleel-sg"
   description = "Allow HTTP access to Strapi"
   vpc_id      = data.aws_vpc.default.id
 
@@ -18,6 +18,6 @@ resource "aws_security_group" "strapi_sg" {
   }
 
   tags = {
-    Name = "strapi-sg"
+    Name = "kahleel-sg"
   }
 }
