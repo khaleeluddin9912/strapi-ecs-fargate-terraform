@@ -8,8 +8,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "256"
+  memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([{
@@ -31,9 +31,9 @@ resource "aws_ecs_service" "strapi_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = data.aws_subnets.default.ids       # Default VPC subnets
-    security_groups  = [aws_security_group.strapi_sg.id]  # Security group
-    assign_public_ip = true                                # Public IP
+    subnets          = data.aws_subnets.default.ids
+    security_groups  = [aws_security_group.strapi_sg.id]
+    assign_public_ip = true
   }
 
   depends_on = [aws_ecs_task_definition.strapi_task]
