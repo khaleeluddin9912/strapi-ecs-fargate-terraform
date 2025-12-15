@@ -1,5 +1,5 @@
 # ECS Cluster
-resource "aws_ecs_cluster" "strapi_cluster" {
+resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   name = "khaleel-strapi-cluster"
 }
 
@@ -25,9 +25,9 @@ resource "aws_ecs_task_definition" "strapi_task" {
 }
 
 # ECS Service
-resource "aws_ecs_service" "strapi_service" {
+resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
-  cluster         = aws_ecs_cluster.strapi_cluster.id
+  cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1
   launch_type     = "FARGATE"
