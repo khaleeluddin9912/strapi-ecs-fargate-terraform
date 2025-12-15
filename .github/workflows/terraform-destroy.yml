@@ -1,0 +1,51 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "YES" to confirm destruction of all Terraform resources'
+        required: true
+        default: 'NO'
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: ./Terraform
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ./Terraform
+        run: terraform validate
+
+      - name: Confirm Destroy
+        run: |
+          if [ "${{ github.event.inputs.confirm_destroy }}" != "YES" ]; then
+            echo "❌ Destroy not confirmed. Type YES to destroy resources."
+            exit 1
+          fi
+
+      - name: Terraform Destroy
+        working-directory: ./Terraform
+        run: terraform destroy -auto-approve
