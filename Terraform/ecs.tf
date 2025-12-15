@@ -3,7 +3,7 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   name = "khaleel-strapi-cluster"
 }
 
-# ECS Task Definition (Fargate Free-Tier Safe)
+# ECS Task Definition
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -12,17 +12,21 @@ resource "aws_ecs_task_definition" "strapi_task" {
   cpu    = "256"
   memory = "512"
 
-  # Use the existing IAM role
-  execution_role_arn = data.aws_iam_role.ecs_execution.arn
+  # ✅ FIXED LINE (resource, NOT data)
+  execution_role_arn = aws_iam_role.ecs_execution.arn
 
-  container_definitions = jsonencode([{
-    name  = "strapi"
-    image = var.image_uri
-    portMappings = [{
-      containerPort = 1337
-      protocol      = "tcp"
-    }]
-  }])
+  container_definitions = jsonencode([
+    {
+      name  = "strapi"
+      image = var.image_uri
+      portMappings = [
+        {
+          containerPort = 1337
+          protocol      = "tcp"
+        }
+      ]
+    }
+  ])
 }
 
 # ECS Service
@@ -38,8 +42,4 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     security_groups  = [aws_security_group.strapi_sg.id]
     assign_public_ip = true
   }
-
-  depends_on = [
-    aws_ecs_task_definition.strapi_task
-  ]
 }
