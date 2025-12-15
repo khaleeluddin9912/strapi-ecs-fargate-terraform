@@ -12,19 +12,40 @@ resource "aws_ecs_task_definition" "strapi_task" {
   cpu    = "256"
   memory = "512"
 
-  # Use EXISTING IAM role
+  # Existing IAM Role (DO NOT CREATE)
   execution_role_arn = data.aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([
     {
       name  = "strapi"
       image = var.image_uri
+      essential = true
+
       portMappings = [
         {
           containerPort = 1337
           protocol      = "tcp"
         }
       ]
+
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "HOST", value = "0.0.0.0" },
+        { name = "PORT", value = "1337" },
+
+        # SQLite (works without RDS – REQUIRED to stop crashing)
+        { name = "DATABASE_CLIENT", value = "sqlite" },
+        { name = "DATABASE_FILENAME", value = ".tmp/data.db" }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/strapi"
+          awslogs-region        = "ap-south-1"
+          awslogs-stream-prefix = "ecs"
+        }
+      }
     }
   ])
 }
