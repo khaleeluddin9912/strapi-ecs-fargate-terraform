@@ -3,13 +3,12 @@ resource "aws_ecs_cluster" "strapi_cluster" {
   name = "strapi-cluster"
 }
 
-# ECS Task Definition (FREE-TIER SAFE)
+# ECS Task Definition (Fargate Free-Tier Safe)
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
-  # Minimum valid Fargate combo
   cpu    = "256"
   memory = "512"
 
