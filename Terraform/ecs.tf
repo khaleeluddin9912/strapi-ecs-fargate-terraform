@@ -1,5 +1,5 @@
 # ECS Cluster
-resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
+resource "aws_ecs_cluster" "khaleel_strapi" {
   name = "khaleel-strapi-cluster"
 }
 
