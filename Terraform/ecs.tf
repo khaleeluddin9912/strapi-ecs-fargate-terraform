@@ -61,4 +61,3 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     security_groups  = [aws_security_group.strapi_sg.id]
     assign_public_ip = true
   }
-}
