@@ -1,4 +1,4 @@
-resource "aws_cloudwatch_log_group" "strapi" {
-  name              = "/ecs/strapi-khaleel"
-  retention_in_days = 7
+# Use existing CloudWatch Log Group (DO NOT CREATE)
+data "aws_cloudwatch_log_group" "strapi" {
+  name = "/ecs/strapi-khaleel"
 }
