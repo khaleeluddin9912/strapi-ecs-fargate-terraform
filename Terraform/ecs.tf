@@ -11,8 +11,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
   cpu                      = "256"
   memory                   = "512"
 
-  # USE EXISTING ROLE (from iam.tf data block)
-  execution_role_arn = data.aws_iam_role.ecs_execution.arn
+  execution_role_arn = aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([
     {
@@ -20,12 +19,10 @@ resource "aws_ecs_task_definition" "strapi_task" {
       image     = var.image_uri
       essential = true
 
-      portMappings = [
-        {
-          containerPort = 1337
-          protocol      = "tcp"
-        }
-      ]
+      portMappings = [{
+        containerPort = 1337
+        protocol      = "tcp"
+      }]
 
       environment = [
         { name = "NODE_ENV", value = "production" },
