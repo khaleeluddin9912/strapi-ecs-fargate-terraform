@@ -1,5 +1,5 @@
 # ECS Cluster
-resource "aws_ecs_cluster" "khaleel_strapi" {
+resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   name = "khaleel-strapi-cluster"
 }
 
@@ -61,3 +61,4 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     security_groups  = [aws_security_group.strapi_sg.id]
     assign_public_ip = true
   }
+}
