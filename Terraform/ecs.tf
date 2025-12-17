@@ -40,7 +40,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = "/ecs/strapi-khaleel"
+          awslogs-group         = aws_cloudwatch_log_group.strapi.name
           awslogs-region        = "ap-south-1"
           awslogs-stream-prefix = "ecs"
         }
