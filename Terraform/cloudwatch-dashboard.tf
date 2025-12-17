@@ -12,10 +12,14 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         properties = {
           metrics = [
             ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ],
-          period = 60,
-          stat = "Average",
-          title = "CPU Utilization"
+          ]
+          period      = 60
+          stat        = "Average"
+          region      = "ap-south-1"
+          title       = "CPU Utilization"
+          view        = "timeSeries"
+          stacked     = false
+          annotations = {}
         }
       },
       {
@@ -27,10 +31,14 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         properties = {
           metrics = [
             ["AWS/ECS", "MemoryUtilization", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ],
-          period = 60,
-          stat = "Average",
-          title = "Memory Utilization"
+          ]
+          period      = 60
+          stat        = "Average"
+          region      = "ap-south-1"
+          title       = "Memory Utilization"
+          view        = "timeSeries"
+          stacked     = false
+          annotations = {}
         }
       },
       {
@@ -42,10 +50,14 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         properties = {
           metrics = [
             ["AWS/ECS", "RunningTaskCount", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ],
-          period = 60,
-          stat = "Minimum",
-          title = "Running Task Count"
+          ]
+          period      = 60
+          stat        = "Minimum"
+          region      = "ap-south-1"
+          title       = "Running Task Count"
+          view        = "timeSeries"
+          stacked     = false
+          annotations = {}
         }
       },
       {
@@ -58,10 +70,14 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
           metrics = [
             ["AWS/ECS", "NetworkRxBytes", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name],
             ["AWS/ECS", "NetworkTxBytes", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ],
-          period = 60,
-          stat = "Sum",
-          title = "Network In / Out"
+          ]
+          period      = 60
+          stat        = "Sum"
+          region      = "ap-south-1"
+          title       = "Network In / Out"
+          view        = "timeSeries"
+          stacked     = false
+          annotations = {}
         }
       }
     ]
