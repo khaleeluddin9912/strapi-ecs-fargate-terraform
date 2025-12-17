@@ -82,4 +82,8 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
       }
     ]
   })
+
+  depends_on = [
+    aws_ecs_service.khaleel_strapi_service
+  ]
 }
