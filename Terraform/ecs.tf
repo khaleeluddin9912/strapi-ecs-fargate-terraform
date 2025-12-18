@@ -50,7 +50,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
   }])
 }
 
-# ECS Service
+# ECS Service (attached to ALB)
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
@@ -63,4 +63,14 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     security_groups  = [aws_security_group.strapi_sg.id]
     assign_public_ip = true
   }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.khaleel_strapi_tg.arn
+    container_name   = "strapi"
+    container_port   = 1337
+  }
+
+  depends_on = [
+    aws_lb_listener.khaleel_http_listener
+  ]
 }
