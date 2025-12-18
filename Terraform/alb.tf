@@ -3,7 +3,6 @@ resource "aws_lb" "strapi_alb" {
   load_balancer_type = "application"
   internal           = false
 
-  # Use default subnets (one per AZ)
   subnets         = data.aws_subnets.default.ids
   security_groups = [aws_security_group.alb_sg.id]
 
@@ -23,10 +22,10 @@ resource "aws_lb_target_group" "strapi_tg" {
 
   health_check {
     enabled             = true
-    path                = "/"
+    path                = "/"           # Keep root path
     port                = "1337"
     protocol            = "HTTP"
-    matcher             = "200"
+    matcher             = "200,302"     # ACCEPT BOTH 200 AND 302
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
