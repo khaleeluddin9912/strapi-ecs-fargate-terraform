@@ -1,3 +1,4 @@
+# ECS Cluster
 resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   name = "khaleel-strapi-cluster"
 
@@ -7,6 +8,7 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   }
 }
 
+# ECS Task Definition
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -28,9 +30,13 @@ resource "aws_ecs_task_definition" "strapi_task" {
     }]
 
     environment = [
+      { name = "NODE_ENV", value = "production" },
       { name = "HOST", value = "0.0.0.0" },
       { name = "PORT", value = "1337" },
-      { name = "NODE_ENV", value = "production" }
+      { name = "APP_KEYS", value = "key1,key2,key3,key4" },
+      { name = "API_TOKEN_SALT", value = "randomsalt123" },
+      { name = "ADMIN_JWT_SECRET", value = "adminjwtsecret123" },
+      { name = "JWT_SECRET", value = "jwtsecret123" }
     ]
 
     logConfiguration = {
@@ -44,6 +50,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
   }])
 }
 
+# ECS Service
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
@@ -51,16 +58,17 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
 
-  network_configuration {
-    subnets          = data.aws_subnets.default.ids
-    security_groups  = [aws_security_group.ecs_sg.id]
-    assign_public_ip = true
-  }
-
+  # CONNECT TO ALB
   load_balancer {
     target_group_arn = aws_lb_target_group.strapi_tg.arn
     container_name   = "strapi"
     container_port   = 1337
+  }
+
+  network_configuration {
+    subnets          = data.aws_subnets.default.ids
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
   }
 
   depends_on = [aws_lb_listener.http]

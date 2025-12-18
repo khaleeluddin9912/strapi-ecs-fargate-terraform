@@ -18,7 +18,7 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-# ECS Task Security Group
+# ECS Security Group
 resource "aws_security_group" "ecs_sg" {
   name   = "khaleel-ecs-sg"
   vpc_id = data.aws_vpc.default.id

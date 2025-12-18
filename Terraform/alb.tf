@@ -5,6 +5,12 @@ resource "aws_lb" "strapi_alb" {
 
   subnets         = data.aws_subnets.default.ids
   security_groups = [aws_security_group.alb_sg.id]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "khaleel-strapi-alb"
+  }
 }
 
 resource "aws_lb_target_group" "strapi_tg" {
@@ -15,13 +21,19 @@ resource "aws_lb_target_group" "strapi_tg" {
   target_type = "ip"
 
   health_check {
+    enabled             = true
     path                = "/"
     port                = "1337"
-    matcher             = "200-399"
+    protocol            = "HTTP"
+    matcher             = "200"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
-    unhealthy_threshold = 2
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Name = "khaleel-strapi-tg"
   }
 }
 
