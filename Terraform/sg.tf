@@ -19,7 +19,7 @@ resource "aws_security_group" "strapi_alb_sg" {
 }
 
 # ECS Task Security Group
-resource "aws_security_group" "strapi_sg" {
+resource "aws_security_group" "strapi_ecs_sg" {
   name   = "khaleel-strapi-ecs-sg"
   vpc_id = data.aws_vpc.default.id
 
