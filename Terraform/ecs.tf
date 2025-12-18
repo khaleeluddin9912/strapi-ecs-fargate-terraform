@@ -66,7 +66,7 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
   }
 
   network_configuration {
-    subnets          = data.aws_subnets.default.ids
+    subnets          = data.aws_subnets.default.ids  # Use same subnets
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }

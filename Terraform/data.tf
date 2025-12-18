@@ -3,10 +3,15 @@ data "aws_vpc" "default" {
   default = true
 }
 
-# Get subnets of default VPC
+# Get default subnets (one per AZ)
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
+  }
+  
+  filter {
+    name   = "default-for-az"
+    values = ["true"]
   }
 }

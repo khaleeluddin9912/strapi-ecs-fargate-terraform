@@ -3,6 +3,7 @@ resource "aws_lb" "strapi_alb" {
   load_balancer_type = "application"
   internal           = false
 
+  # Use default subnets (one per AZ)
   subnets         = data.aws_subnets.default.ids
   security_groups = [aws_security_group.alb_sg.id]
 
