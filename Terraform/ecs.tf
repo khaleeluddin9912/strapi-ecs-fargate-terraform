@@ -23,6 +23,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
 
     portMappings = [{
       containerPort = 1337
+      hostPort      = 1337
       protocol      = "tcp"
     }]
 
@@ -52,15 +53,15 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups  = [aws_security_group.strapi_ecs_sg.id]
+    security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.khaleel_strapi_tg.arn
+    target_group_arn = aws_lb_target_group.strapi_tg.arn
     container_name   = "strapi"
     container_port   = 1337
   }
 
-  depends_on = [aws_lb_listener.khaleel_http_listener]
+  depends_on = [aws_lb_listener.http]
 }

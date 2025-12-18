@@ -1,13 +1,13 @@
-resource "aws_lb" "khaleel_strapi_alb" {
+resource "aws_lb" "strapi_alb" {
   name               = "khaleel-strapi-alb"
   load_balancer_type = "application"
   internal           = false
 
   subnets         = data.aws_subnets.default.ids
-  security_groups = [aws_security_group.strapi_alb_sg.id]
+  security_groups = [aws_security_group.alb_sg.id]
 }
 
-resource "aws_lb_target_group" "khaleel_strapi_tg" {
+resource "aws_lb_target_group" "strapi_tg" {
   name        = "khaleel-strapi-tg"
   port        = 1337
   protocol    = "HTTP"
@@ -15,8 +15,8 @@ resource "aws_lb_target_group" "khaleel_strapi_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    protocol            = "HTTP"
+    path                = "/"
+    port                = "1337"
     matcher             = "200-399"
     interval            = 30
     timeout             = 5
@@ -25,13 +25,13 @@ resource "aws_lb_target_group" "khaleel_strapi_tg" {
   }
 }
 
-resource "aws_lb_listener" "khaleel_http_listener" {
-  load_balancer_arn = aws_lb.khaleel_strapi_alb.arn
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.strapi_alb.arn
   port              = 80
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.khaleel_strapi_tg.arn
+    target_group_arn = aws_lb_target_group.strapi_tg.arn
   }
 }

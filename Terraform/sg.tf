@@ -1,5 +1,6 @@
-resource "aws_security_group" "strapi_alb_sg" {
-  name   = "khaleel-strapi-alb-sg"
+# ALB Security Group
+resource "aws_security_group" "alb_sg" {
+  name   = "khaleel-alb-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
@@ -17,15 +18,16 @@ resource "aws_security_group" "strapi_alb_sg" {
   }
 }
 
-resource "aws_security_group" "strapi_ecs_sg" {
-  name   = "khaleel-strapi-ecs-sg"
+# ECS Task Security Group
+resource "aws_security_group" "ecs_sg" {
+  name   = "khaleel-ecs-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port       = 1337
     to_port         = 1337
     protocol        = "tcp"
-    security_groups = [aws_security_group.strapi_alb_sg.id]
+    security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {
