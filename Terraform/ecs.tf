@@ -28,7 +28,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
 
     environment = [
       { name = "HOST", value = "0.0.0.0" },
-      { name = "PORT", value = "1337" }
+      { name = "PORT", value = "1337" },
+      { name = "NODE_ENV", value = "production" }
     ]
 
     logConfiguration = {
