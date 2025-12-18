@@ -16,7 +16,6 @@ resource "aws_ecs_task_definition" "strapi_task" {
   cpu                      = "256"
   memory                   = "512"
 
-  # Use EXISTING IAM role (from iam.tf)
   execution_role_arn = data.aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([{
@@ -50,7 +49,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
   }])
 }
 
-# ECS Service (attached to ALB)
+# ECS Service attached to ALB
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
