@@ -1,18 +1,16 @@
-# Application Load Balancer
 resource "aws_lb" "khaleel_strapi_alb" {
   name               = "khaleel-strapi-alb"
   load_balancer_type = "application"
   internal           = false
 
   subnets         = data.aws_subnets.default.ids
-  security_groups = [aws_security_group.strapi_sg.id]
+  security_groups = [aws_security_group.strapi_alb_sg.id]
 
   tags = {
     Name = "khaleel-strapi-alb"
   }
 }
 
-# Target Group for ECS (IP mode for Fargate)
 resource "aws_lb_target_group" "khaleel_strapi_tg" {
   name        = "khaleel-strapi-tg"
   port        = 1337
@@ -21,7 +19,7 @@ resource "aws_lb_target_group" "khaleel_strapi_tg" {
   target_type = "ip"
 
   health_check {
-    path                = "/"
+    path                = "/admin"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
@@ -34,7 +32,6 @@ resource "aws_lb_target_group" "khaleel_strapi_tg" {
   }
 }
 
-# ALB Listener (Public HTTP → Target Group)
 resource "aws_lb_listener" "khaleel_http_listener" {
   load_balancer_arn = aws_lb.khaleel_strapi_alb.arn
   port              = 80
