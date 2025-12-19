@@ -20,16 +20,17 @@ resource "aws_lb_target_group" "strapi_tg" {
   vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
 
+  # CRITICAL FIX: Health check for Strapi
   health_check {
     enabled             = true
-    path                = "/"           # Keep root path
+    path                = "/admin"          # CHANGE: Use /admin instead of /
     port                = "1337"
     protocol            = "HTTP"
-    matcher             = "200,302"     # ACCEPT BOTH 200 AND 302
-    interval            = 30
-    timeout             = 5
+    matcher             = "200,302,301"     # CHANGE: Accept redirects
+    interval            = 60                # CHANGE: Increase to 60s
+    timeout             = 20                # CHANGE: Increase to 20s
     healthy_threshold   = 2
-    unhealthy_threshold = 3
+    unhealthy_threshold = 5                 # CHANGE: Increase to 5
   }
 
   tags = {

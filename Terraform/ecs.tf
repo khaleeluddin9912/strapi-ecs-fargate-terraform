@@ -13,8 +13,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = "512"      # INCREASED: 256 → 512
+  memory                   = "1024"     # INCREASED: 512 → 1024
 
   execution_role_arn = data.aws_iam_role.ecs_execution.arn
 
@@ -22,6 +22,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
     name      = "strapi"
     image     = var.image_uri
     essential = true
+    cpu       = 512
+    memory    = 1024
 
     portMappings = [{
       containerPort = 1337
@@ -29,9 +31,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
       protocol      = "tcp"
     }]
 
-    # CHANGED: development mode + SQLite for testing
     environment = [
-      { name = "NODE_ENV", value = "development" },          # CHANGED: development not production
+      { name = "NODE_ENV", value = "development" },
       { name = "HOST", value = "0.0.0.0" },
       { name = "PORT", value = "1337" },
       { name = "APP_KEYS", value = "key1,key2,key3,key4" },
@@ -39,9 +40,14 @@ resource "aws_ecs_task_definition" "strapi_task" {
       { name = "ADMIN_JWT_SECRET", value = "adminjwtsecret123" },
       { name = "JWT_SECRET", value = "jwtsecret123" },
       
-      # SQLite configuration for development (no external DB needed)
+      # SQLite configuration for development
       { name = "DATABASE_CLIENT", value = "sqlite" },
-      { name = "DATABASE_FILENAME", value = ".tmp/data.db" }
+      { name = "DATABASE_FILENAME", value = ".tmp/data.db" },
+      
+      # ADDED: Strapi optimization variables
+      { name = "STRAPI_DISABLE_UPDATE_NOTIFICATION", value = "true" },
+      { name = "STRAPI_TELEMETRY_DISABLED", value = "true" },
+      { name = "BROWSER", value = "none" }
     ]
 
     logConfiguration = {
@@ -55,7 +61,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
   }])
 }
 
-# ECS Service
+# ECS Service - UPDATED with health check grace period
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
@@ -75,6 +81,9 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = true
   }
+
+  # CRITICAL: Add health check grace period
+  health_check_grace_period_seconds = 180  # Give 3 minutes for Strapi to start
 
   depends_on = [aws_lb_listener.http]
 }
