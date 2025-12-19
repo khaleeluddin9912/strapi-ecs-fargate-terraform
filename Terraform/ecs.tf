@@ -10,7 +10,7 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
 
 # Fargate Spot Capacity Provider
 resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
-  cluster_name = aws_ecs_cluster.khaleel_strapi_cluster.name
+  cluster_name       = aws_ecs_cluster.khaleel_strapi_cluster.name
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 
   default_capacity_provider_strategy {
@@ -20,7 +20,7 @@ resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
   }
 }
 
-# ECS Task Definition - UPDATED (No Secrets Manager)
+# ECS Task Definition - UPDATED (No task role, no Secrets Manager)
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -47,30 +47,26 @@ resource "aws_ecs_task_definition" "strapi_task" {
       { name = "NODE_ENV", value = "production" },
       { name = "HOST", value = "0.0.0.0" },
       { name = "PORT", value = "1337" },
-      
-      # ✅ PostgreSQL RDS Configuration (Direct values)
+
+      # PostgreSQL RDS Configuration
       { name = "DATABASE_CLIENT", value = "postgres" },
       { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
       { name = "DATABASE_PORT", value = "5432" },
       { name = "DATABASE_NAME", value = "strapidb" },
       { name = "DATABASE_USERNAME", value = "strapiadmin" },
-      { name = "DATABASE_SSL", value = "false" },
-      { name = "DATABASE_PASSWORD", value = random_password.db_password.result },  # ✅ Direct from random_password
-      
-      # ✅ Strapi Secrets (Direct from random_password resources)
+      { name = "DATABASE_PASSWORD", value = random_password.db_password.result },
+
+      # Strapi Secrets
       { name = "APP_KEYS", value = "${random_password.app_key1.result},${random_password.app_key2.result},${random_password.app_key3.result},${random_password.app_key4.result}" },
       { name = "API_TOKEN_SALT", value = random_password.api_salt.result },
       { name = "ADMIN_JWT_SECRET", value = random_password.admin_jwt.result },
       { name = "JWT_SECRET", value = random_password.jwt_secret.result },
-      
+
       # Strapi optimization variables
       { name = "STRAPI_DISABLE_UPDATE_NOTIFICATION", value = "true" },
       { name = "STRAPI_TELEMETRY_DISABLED", value = "true" },
       { name = "BROWSER", value = "none" }
     ]
-
-    # ❌ REMOVED: Secrets Manager section (causes IAM permission errors)
-    # secrets = [ ... ]
 
     logConfiguration = {
       logDriver = "awslogs"
@@ -89,7 +85,7 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1
-  
+
   # Use Fargate Spot
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
