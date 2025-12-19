@@ -20,10 +20,9 @@ resource "aws_lb_target_group" "strapi_tg" {
   vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
 
-  # ✅ FIXED: Change from /admin 
   health_check {
     enabled             = true
-    path                = "/admin"        
+    path                = "/admin"
     port                = "1337"
     protocol            = "HTTP"
     matcher             = "200"
