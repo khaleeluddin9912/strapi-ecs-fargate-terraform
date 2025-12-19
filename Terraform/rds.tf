@@ -3,13 +3,12 @@ resource "random_password" "db_password" {
   length = 16
 }
 
-# RDS Subnet Group (REQUIRED – fixes undeclared resource error)
-resource "aws_db_subnet_group" "strapi_db" {
-  name       = "khaleel-strapi-db-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
+# Use EXISTING RDS Subnet Group (DO NOT CREATE)
+data "aws_db_subnet_group" "strapi_db" {
+  name = "khaleel-strapi-db-subnet-group"
 }
 
-# RDS Security Group (REQUIRED – fixes undeclared resource error)
+# RDS Security Group
 resource "aws_security_group" "rds_sg" {
   name   = "khaleel-rds-sg"
   vpc_id = data.aws_vpc.default.id
@@ -42,7 +41,7 @@ resource "aws_db_instance" "strapi_db" {
   password = random_password.db_password.result
   port     = 5432
 
-  db_subnet_group_name   = aws_db_subnet_group.strapi_db.name
+  db_subnet_group_name   = data.aws_db_subnet_group.strapi_db.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   publicly_accessible    = true
 
