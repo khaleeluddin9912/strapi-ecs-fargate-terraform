@@ -20,7 +20,7 @@ resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
   }
 }
 
-# ECS Task Definition
+# ECS Task Definition - UPDATED (No Secrets Manager)
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -48,13 +48,20 @@ resource "aws_ecs_task_definition" "strapi_task" {
       { name = "HOST", value = "0.0.0.0" },
       { name = "PORT", value = "1337" },
       
-      # PostgreSQL RDS Configuration
+      # ✅ PostgreSQL RDS Configuration (Direct values)
       { name = "DATABASE_CLIENT", value = "postgres" },
       { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
       { name = "DATABASE_PORT", value = "5432" },
       { name = "DATABASE_NAME", value = "strapidb" },
       { name = "DATABASE_USERNAME", value = "strapiadmin" },
       { name = "DATABASE_SSL", value = "false" },
+      { name = "DATABASE_PASSWORD", value = random_password.db_password.result },  # ✅ Direct from random_password
+      
+      # ✅ Strapi Secrets (Direct from random_password resources)
+      { name = "APP_KEYS", value = "${random_password.app_key1.result},${random_password.app_key2.result},${random_password.app_key3.result},${random_password.app_key4.result}" },
+      { name = "API_TOKEN_SALT", value = random_password.api_salt.result },
+      { name = "ADMIN_JWT_SECRET", value = random_password.admin_jwt.result },
+      { name = "JWT_SECRET", value = random_password.jwt_secret.result },
       
       # Strapi optimization variables
       { name = "STRAPI_DISABLE_UPDATE_NOTIFICATION", value = "true" },
@@ -62,29 +69,8 @@ resource "aws_ecs_task_definition" "strapi_task" {
       { name = "BROWSER", value = "none" }
     ]
 
-    # Secrets from Secrets Manager
-    secrets = [
-      {
-        name      = "DATABASE_PASSWORD"
-        valueFrom = aws_secretsmanager_secret.db_password.arn
-      },
-      {
-        name      = "APP_KEYS"
-        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:APP_KEYS::"
-      },
-      {
-        name      = "API_TOKEN_SALT"
-        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:API_TOKEN_SALT::"
-      },
-      {
-        name      = "ADMIN_JWT_SECRET"
-        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:ADMIN_JWT_SECRET::"
-      },
-      {
-        name      = "JWT_SECRET"
-        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:JWT_SECRET::"
-      }
-    ]
+    # ❌ REMOVED: Secrets Manager section (causes IAM permission errors)
+    # secrets = [ ... ]
 
     logConfiguration = {
       logDriver = "awslogs"
