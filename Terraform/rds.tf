@@ -1,41 +1,62 @@
+# RDS Security Group
+resource "aws_security_group" "rds_sg" {
+  name        = "khaleel-rds-sg"
+  description = "Security group for RDS PostgreSQL"
+  vpc_id      = data.aws_vpc.default.id
+
+  # Allow PostgreSQL from ECS
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# RDS Subnet Group
+resource "aws_db_subnet_group" "strapi_db" {
+  name       = "khaleel-strapi-db-subnet"
+  subnet_ids = data.aws_subnets.default.ids
+}
+
+# Database Password
+resource "random_password" "db_password" {
+  length = 16
+}
+
+# Store password in Secrets Manager
+resource "aws_secretsmanager_secret" "db_password" {
+  name = "khaleel-strapi-db-password"
+}
+
+resource "aws_secretsmanager_secret_version" "db_password_version" {
+  secret_id = aws_secretsmanager_secret.db_password.id
+  secret_string = random_password.db_password.result
+}
+
 # RDS PostgreSQL Database
 resource "aws_db_instance" "strapi_db" {
-  identifier          = "khaleel-strapi-db"
-  engine              = "postgres"
-  engine_version      = "15.4"
-  instance_class      = "db.t3.micro"
-  allocated_storage   = 20
-  storage_type        = "gp3"
-  storage_encrypted   = true
-  
-  db_name            = "strapidb"
-  username           = "strapiadmin"
-  password           = random_password.db_password.result
-  port               = 5432
+  identifier     = "khaleel-strapi-db"
+  engine        = "postgres"
+  engine_version = "15.4"
+  instance_class = "db.t3.micro"
+  allocated_storage = 20
 
-  db_subnet_group_name   = aws_db_subnet_group.strapi_db.name
+  db_name  = "strapidb"
+  username = "strapiadmin"
+  password = random_password.db_password.result
+  port     = 5432
+
+  db_subnet_group_name = aws_db_subnet_group.strapi_db.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
-  publicly_accessible    = true
-  
-  multi_az               = false
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-  
-  max_allocated_storage = 100
-  
-  performance_insights_enabled = true
-  performance_insights_retention_period = 7
-  
+  publicly_accessible = true
+
   skip_final_snapshot = true
-  deletion_protection = false
-  
-  # Monitoring (optional - remove if you don't have the role)
-  # monitoring_interval = 60
-  # monitoring_role_arn = data.aws_iam_role.rds_monitoring.arn
-  
-  tags = {
-    Name = "khaleel-strapi-database"
-    Environment = "development"
-  }
 }
