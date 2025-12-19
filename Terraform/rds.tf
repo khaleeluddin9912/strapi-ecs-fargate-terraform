@@ -1,9 +1,10 @@
+# Generate DB password
 resource "random_password" "db_password" {
   length  = 16
-  special = false
+  special = false   # ✅ RDS-safe password
 }
 
-# Use EXISTING RDS Subnet Group (DO NOT CREATE)
+# Use existing DB Subnet Group
 data "aws_db_subnet_group" "strapi_db" {
   name = "khaleel-strapi-db-subnet-group"
 }
@@ -32,7 +33,7 @@ resource "aws_security_group" "rds_sg" {
 resource "aws_db_instance" "strapi_db" {
   identifier        = "khaleel-strapi-db"
   engine            = "postgres"
-  engine_version    = "16"
+  engine_version    = "16.7"          # ✅ Use valid version in your region
   instance_class    = "db.t3.micro"
   allocated_storage = 20
 
@@ -46,4 +47,5 @@ resource "aws_db_instance" "strapi_db" {
   publicly_accessible    = true
 
   skip_final_snapshot = true
+  apply_immediately   = true
 }
