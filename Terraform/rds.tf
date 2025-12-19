@@ -1,6 +1,6 @@
-# Generate DB password
 resource "random_password" "db_password" {
-  length = 16
+  length  = 16
+  special = false
 }
 
 # Use EXISTING RDS Subnet Group (DO NOT CREATE)
