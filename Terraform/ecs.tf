@@ -8,7 +8,7 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   }
 }
 
-# ✅ ADD THIS: Fargate Spot Capacity Provider
+# Fargate Spot Capacity Provider
 resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
   cluster_name = aws_ecs_cluster.khaleel_strapi_cluster.name
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
@@ -20,7 +20,7 @@ resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
   }
 }
 
-# ECS Task Definition - UPDATED for PostgreSQL RDS
+# ECS Task Definition
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -44,11 +44,11 @@ resource "aws_ecs_task_definition" "strapi_task" {
     }]
 
     environment = [
-      { name = "NODE_ENV", value = "production" },  # ✅ Changed from development
+      { name = "NODE_ENV", value = "production" },
       { name = "HOST", value = "0.0.0.0" },
       { name = "PORT", value = "1337" },
       
-      # ✅ CHANGED: PostgreSQL RDS Configuration (Replaced SQLite)
+      # PostgreSQL RDS Configuration
       { name = "DATABASE_CLIENT", value = "postgres" },
       { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
       { name = "DATABASE_PORT", value = "5432" },
@@ -62,7 +62,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
       { name = "BROWSER", value = "none" }
     ]
 
-    # ✅ ADDED: Secrets from Secrets Manager (Secure)
+    # Secrets from Secrets Manager
     secrets = [
       {
         name      = "DATABASE_PASSWORD"
@@ -97,27 +97,20 @@ resource "aws_ecs_task_definition" "strapi_task" {
   }])
 }
 
-# ✅ ADD THIS: CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "strapi" {
-  name              = "/ecs/khaleel-strapi"
-  retention_in_days = 7
-}
-
-# ECS Service - UPDATED for Fargate Spot
+# ECS Service - Using Fargate Spot
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1
   
-  # ✅ CHANGED: Use Fargate Spot instead of regular Fargate
+  # Use Fargate Spot
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
     weight            = 1
     base              = 0
   }
 
-  # CONNECT TO ALB
   load_balancer {
     target_group_arn = aws_lb_target_group.strapi_tg.arn
     container_name   = "strapi"
@@ -130,10 +123,7 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     assign_public_ip = true
   }
 
-  # ✅ INCREASED: Give 5 minutes for Fargate Spot to start
   health_check_grace_period_seconds = 300
-
-  # ✅ ADDED: Enable execute command for debugging
   enable_execute_command = true
 
   depends_on = [aws_lb_listener.http]

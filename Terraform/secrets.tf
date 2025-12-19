@@ -13,11 +13,34 @@ resource "aws_secretsmanager_secret_version" "strapi_app_version" {
   })
 }
 
-# Generate random secrets
-resource "random_password" "app_key1" { length = 32 }
-resource "random_password" "app_key2" { length = 32 }
-resource "random_password" "app_key3" { length = 32 }
-resource "random_password" "app_key4" { length = 32 }
-resource "random_password" "api_salt" { length = 32 special = true }
-resource "random_password" "admin_jwt" { length = 32 special = true }
-resource "random_password" "jwt_secret" { length = 32 special = true }
+# Generate random secrets - FIXED SYNTAX
+resource "random_password" "app_key1" {
+  length = 32
+}
+
+resource "random_password" "app_key2" {
+  length = 32
+}
+
+resource "random_password" "app_key3" {
+  length = 32
+}
+
+resource "random_password" "app_key4" {
+  length = 32
+}
+
+resource "random_password" "api_salt" {
+  length  = 32
+  special = true
+}
+
+resource "random_password" "admin_jwt" {
+  length  = 32
+  special = true
+}
+
+resource "random_password" "jwt_secret" {
+  length  = 32
+  special = true
+}
