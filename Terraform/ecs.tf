@@ -8,13 +8,25 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   }
 }
 
-# ECS Task Definition
+# ✅ ADD THIS: Fargate Spot Capacity Provider
+resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
+  cluster_name = aws_ecs_cluster.khaleel_strapi_cluster.name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+    base              = 0
+  }
+}
+
+# ECS Task Definition - UPDATED for PostgreSQL RDS
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "512"      # INCREASED: 256 → 512
-  memory                   = "1024"     # INCREASED: 512 → 1024
+  cpu                      = "512"
+  memory                   = "1024"
 
   execution_role_arn = data.aws_iam_role.ecs_execution.arn
 
@@ -32,22 +44,46 @@ resource "aws_ecs_task_definition" "strapi_task" {
     }]
 
     environment = [
-      { name = "NODE_ENV", value = "development" },
+      { name = "NODE_ENV", value = "production" },  # ✅ Changed from development
       { name = "HOST", value = "0.0.0.0" },
       { name = "PORT", value = "1337" },
-      { name = "APP_KEYS", value = "key1,key2,key3,key4" },
-      { name = "API_TOKEN_SALT", value = "randomsalt123" },
-      { name = "ADMIN_JWT_SECRET", value = "adminjwtsecret123" },
-      { name = "JWT_SECRET", value = "jwtsecret123" },
       
-      # SQLite configuration for development
-      { name = "DATABASE_CLIENT", value = "sqlite" },
-      { name = "DATABASE_FILENAME", value = ".tmp/data.db" },
+      # ✅ CHANGED: PostgreSQL RDS Configuration (Replaced SQLite)
+      { name = "DATABASE_CLIENT", value = "postgres" },
+      { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
+      { name = "DATABASE_PORT", value = "5432" },
+      { name = "DATABASE_NAME", value = "strapidb" },
+      { name = "DATABASE_USERNAME", value = "strapiadmin" },
+      { name = "DATABASE_SSL", value = "false" },
       
-      # ADDED: Strapi optimization variables
+      # Strapi optimization variables
       { name = "STRAPI_DISABLE_UPDATE_NOTIFICATION", value = "true" },
       { name = "STRAPI_TELEMETRY_DISABLED", value = "true" },
       { name = "BROWSER", value = "none" }
+    ]
+
+    # ✅ ADDED: Secrets from Secrets Manager (Secure)
+    secrets = [
+      {
+        name      = "DATABASE_PASSWORD"
+        valueFrom = aws_secretsmanager_secret.db_password.arn
+      },
+      {
+        name      = "APP_KEYS"
+        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:APP_KEYS::"
+      },
+      {
+        name      = "API_TOKEN_SALT"
+        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:API_TOKEN_SALT::"
+      },
+      {
+        name      = "ADMIN_JWT_SECRET"
+        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:ADMIN_JWT_SECRET::"
+      },
+      {
+        name      = "JWT_SECRET"
+        valueFrom = "${aws_secretsmanager_secret.strapi_app.arn}:JWT_SECRET::"
+      }
     ]
 
     logConfiguration = {
@@ -61,13 +97,25 @@ resource "aws_ecs_task_definition" "strapi_task" {
   }])
 }
 
-# ECS Service - UPDATED with health check grace period
+# ✅ ADD THIS: CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "strapi" {
+  name              = "/ecs/khaleel-strapi"
+  retention_in_days = 7
+}
+
+# ECS Service - UPDATED for Fargate Spot
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1
-  launch_type     = "FARGATE"
+  
+  # ✅ CHANGED: Use Fargate Spot instead of regular Fargate
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+    base              = 0
+  }
 
   # CONNECT TO ALB
   load_balancer {
@@ -82,8 +130,11 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
     assign_public_ip = true
   }
 
-  # CRITICAL: Add health check grace period
-  health_check_grace_period_seconds = 180  # Give 3 minutes for Strapi to start
+  # ✅ INCREASED: Give 5 minutes for Fargate Spot to start
+  health_check_grace_period_seconds = 300
+
+  # ✅ ADDED: Enable execute command for debugging
+  enable_execute_command = true
 
   depends_on = [aws_lb_listener.http]
 }

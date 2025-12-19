@@ -7,6 +7,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
+  ECR_REPO: ${{ secrets.ECR_REPO }}
 
 jobs:
   build-and-push:
@@ -33,30 +34,20 @@ jobs:
           DATE_TAG=$(date +%Y%m%d-%H%M%S)
           IMAGE_TAG="$SHORT_SHA-$DATE_TAG"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          # DON'T set to GITHUB_ENV here
 
+      # ✅ FIXED: Use steps.tag.outputs.image_tag instead of env.IMAGE_TAG
       - name: Build Docker image
-        env:
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          ECR_REPO: ${{ secrets.ECR_REPO }}
-        run: docker build -t strapi-app:$IMAGE_TAG .
-
-      - name: Tag Docker image for ECR
-        env:
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          ECR_REPO: ${{ secrets.ECR_REPO }}
-        run: docker tag strapi-app:$IMAGE_TAG $ECR_REPO:$IMAGE_TAG
+        run: |
+          docker build -t ${{ env.ECR_REPO }}:${{ steps.tag.outputs.image_tag }} .
 
       - name: Push Docker image to ECR
-        env:
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
-          ECR_REPO: ${{ secrets.ECR_REPO }}
-        run: docker push $ECR_REPO:$IMAGE_TAG
+        run: |
+          docker push ${{ env.ECR_REPO }}:${{ steps.tag.outputs.image_tag }}
+          echo "✅ Pushed: ${{ env.ECR_REPO }}:${{ steps.tag.outputs.image_tag }}"
 
       - name: Tag as latest
-        env:
-          ECR_REPO: ${{ secrets.ECR_REPO }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
-          docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
-          docker push $ECR_REPO:latest
+          docker tag ${{ env.ECR_REPO }}:${{ steps.tag.outputs.image_tag }} ${{ env.ECR_REPO }}:latest
+          docker push ${{ env.ECR_REPO }}:latest
+          echo "✅ Updated latest tag"

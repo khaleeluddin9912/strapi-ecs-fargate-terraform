@@ -1,6 +1,7 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache python3 make g++ libc6-compat
+# Install required dependencies INCLUDING PostgreSQL
+RUN apk add --no-cache python3 make g++ libc6-compat postgresql-client postgresql-dev
 
 WORKDIR /app
 

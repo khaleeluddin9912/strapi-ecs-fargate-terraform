@@ -20,18 +20,20 @@ resource "aws_lb_target_group" "strapi_tg" {
   vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
 
-  # CRITICAL FIX: Health check for Strapi
+  # ✅ FIXED: Change from /admin to /_health
   health_check {
     enabled             = true
-    path                = "/admin"          # CHANGE: Use /admin instead of /
+    path                = "/_health"        # ✅ FIXED PATH
     port                = "1337"
     protocol            = "HTTP"
-    matcher             = "200,302,301"     # CHANGE: Accept redirects
-    interval            = 60                # CHANGE: Increase to 60s
-    timeout             = 20                # CHANGE: Increase to 20s
+    matcher             = "200"
+    interval            = 90
+    timeout             = 30
     healthy_threshold   = 2
-    unhealthy_threshold = 5                 # CHANGE: Increase to 5
+    unhealthy_threshold = 5
   }
+
+  slow_start = 180
 
   tags = {
     Name = "khaleel-strapi-tg"

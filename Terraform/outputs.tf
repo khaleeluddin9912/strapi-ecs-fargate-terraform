@@ -1,7 +1,14 @@
-output "ecs_cluster_name" {
-  value = aws_ecs_cluster.khaleel_strapi_cluster.name
+output "alb_dns_name" {
+  description = "ALB DNS name for Strapi"
+  value       = aws_lb.strapi_alb.dns_name
 }
 
-output "ecs_service_name" {
-  value = aws_ecs_service.khaleel_strapi_service.name
+output "strapi_url" {
+  description = "Full Strapi URL"
+  value       = "http://${aws_lb.strapi_alb.dns_name}"
+}
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint"
+  value       = aws_db_instance.strapi_db.endpoint
 }
