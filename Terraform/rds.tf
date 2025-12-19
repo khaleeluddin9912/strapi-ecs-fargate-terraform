@@ -32,7 +32,7 @@ resource "aws_security_group" "rds_sg" {
 resource "aws_db_instance" "strapi_db" {
   identifier        = "khaleel-strapi-db"
   engine            = "postgres"
-  engine_version    = "14.11"
+  engine_version    = "16"
   instance_class    = "db.t3.micro"
   allocated_storage = 20
 
