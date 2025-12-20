@@ -1,4 +1,6 @@
-# ECS Cluster
+#################################
+# ECS CLUSTER
+#################################
 resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   name = "khaleel-strapi-cluster"
 
@@ -8,9 +10,11 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
   }
 }
 
-# Fargate Spot Capacity Provider
+#################################
+# CAPACITY PROVIDERS (FARGATE SPOT)
+#################################
 resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
-  cluster_name      = aws_ecs_cluster.khaleel_strapi_cluster.name
+  cluster_name       = aws_ecs_cluster.khaleel_strapi_cluster.name
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 
   default_capacity_provider_strategy {
@@ -20,7 +24,9 @@ resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
   }
 }
 
-# ECS Task Definition
+#################################
+# ECS TASK DEFINITION
+#################################
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -28,53 +34,57 @@ resource "aws_ecs_task_definition" "strapi_task" {
   cpu                      = "512"
   memory                   = "1024"
 
+  # ⚠️ USING EXISTING ROLE ONLY (NO CREATION)
   execution_role_arn = data.aws_iam_role.ecs_execution.arn
   task_role_arn      = data.aws_iam_role.ecs_execution.arn
 
-  container_definitions = jsonencode([{
-    name      = "strapi"
-    image     = var.image_uri
-    essential = true
-    cpu       = 512
-    memory    = 1024
+  container_definitions = jsonencode([
+    {
+      name      = "strapi"
+      image     = var.image_uri
+      essential = true
 
-    portMappings = [{
-      containerPort = 1337
-      hostPort      = 1337
-      protocol      = "tcp"
-    }]
+      portMappings = [
+        {
+          containerPort = 1337
+          hostPort      = 1337
+          protocol      = "tcp"
+        }
+      ]
 
-    environment = [
-      { name = "NODE_ENV", value = "production" },
-      { name = "HOST", value = "0.0.0.0" },
-      { name = "PORT", value = "1337" },
-      { name = "DATABASE_CLIENT", value = "postgres" },
-      { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
-      { name = "DATABASE_PORT", value = "5432" },
-      { name = "DATABASE_NAME", value = "strapidb" },
-      { name = "DATABASE_USERNAME", value = "strapiadmin" },
-      { name = "DATABASE_PASSWORD", value = random_password.db_password.result },
-      { name = "APP_KEYS", value = "${random_password.app_key1.result},${random_password.app_key2.result},${random_password.app_key3.result},${random_password.app_key4.result}" },
-      { name = "API_TOKEN_SALT", value = random_password.api_salt.result },
-      { name = "ADMIN_JWT_SECRET", value = random_password.admin_jwt.result },
-      { name = "JWT_SECRET", value = random_password.jwt_secret.result },
-      { name = "STRAPI_DISABLE_UPDATE_NOTIFICATION", value = "true" },
-      { name = "STRAPI_TELEMETRY_DISABLED", value = "true" },
-      { name = "BROWSER", value = "none" }
-    ]
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "HOST", value = "0.0.0.0" },
+        { name = "PORT", value = "1337" },
 
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        awslogs-group         = aws_cloudwatch_log_group.strapi.name
-        awslogs-region        = "ap-south-1"
-        awslogs-stream-prefix = "ecs"
+        { name = "DATABASE_CLIENT", value = "postgres" },
+        { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
+        { name = "DATABASE_PORT", value = "5432" },
+        { name = "DATABASE_NAME", value = "strapidb" },
+        { name = "DATABASE_USERNAME", value = "strapiadmin" },
+        { name = "DATABASE_PASSWORD", value = random_password.db_password.result },
+
+        { name = "APP_KEYS", value = "${random_password.app_key1.result},${random_password.app_key2.result},${random_password.app_key3.result},${random_password.app_key4.result}" },
+        { name = "API_TOKEN_SALT", value = random_password.api_salt.result },
+        { name = "ADMIN_JWT_SECRET", value = random_password.admin_jwt.result },
+        { name = "JWT_SECRET", value = random_password.jwt_secret.result }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.strapi.name
+          awslogs-region        = "ap-south-1"
+          awslogs-stream-prefix = "ecs"
+        }
       }
     }
-  }])
+  ])
 }
 
-# ECS Service - Fargate Spot
+#################################
+# ECS SERVICE (FARGATE SPOT)
+#################################
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
@@ -94,4 +104,12 @@ resource "aws_ecs_service" "khaleel_strapi_service" {
   }
 
   network_configuration {
-    subne
+    subnets          = data.aws_subnets.default.ids
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [
+    aws_lb_listener.http
+  ]
+}
