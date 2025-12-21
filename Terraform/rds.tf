@@ -4,23 +4,20 @@ resource "random_password" "db_password" {
   special = false
 }
 
-# Use existing RDS subnet group
-data "aws_db_subnet_group" "strapi_db" {
-  name = "khaleel-strapi-db-subnet-group"
+# ✅ CREATE RDS Subnet Group (FIX)
+resource "aws_db_subnet_group" "strapi_db" {
+  name       = "khaleel-strapi-db-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
+
+  tags = {
+    Name = "khaleel-strapi-db-subnet-group"
+  }
 }
 
-# RDS Security Group - FIXED VERSION
+# RDS Security Group
 resource "aws_security_group" "rds_sg" {
   name   = "khaleel-rds-sg"
   vpc_id = data.aws_vpc.default.id
-
-  # 🔴 REMOVED: The problematic ingress block with circular dependency
-  # ingress {
-  #   from_port       = 5432
-  #   to_port         = 5432
-  #   protocol        = "tcp"
-  #   security_groups = [aws_security_group.ecs_sg.id]
-  # }
 
   egress {
     from_port   = 0
@@ -30,7 +27,7 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
-# ✅ ADDED: Separate security group rule - fixes the circular dependency
+# Allow ECS to connect to RDS
 resource "aws_security_group_rule" "rds_allow_ecs" {
   type                     = "ingress"
   from_port                = 5432
@@ -48,17 +45,15 @@ resource "aws_db_instance" "strapi_db" {
   engine_version         = "16"
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
-  db_name                = "strapidb"
-  username               = "strapiadmin"
-  password               = random_password.db_password.result
-  port                   = 5432
-  db_subnet_group_name   = data.aws_db_subnet_group.strapi_db.name
+
+  db_name  = "strapidb"
+  username = "strapiadmin"
+  password = random_password.db_password.result
+  port     = 5432
+
+  db_subnet_group_name   = aws_db_subnet_group.strapi_db.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
-  publicly_accessible    = true
-  skip_final_snapshot    = true
-  
-  # 🔴 REMOVED: depends_on block - doesn't solve the core issue
-  # depends_on = [
-  #   aws_security_group.ecs_sg
-  # ]
+
+  publicly_accessible = true
+  skip_final_snapshot = true
 }
