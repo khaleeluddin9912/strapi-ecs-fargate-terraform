@@ -39,14 +39,14 @@ resource "aws_cloudwatch_metric_alarm" "khaleel_ecs_memory_high" {
 }
 
 # Optional: Task Count Low Alarm
-resource "aws_cloudwatch_metric_alarm" "khaleel_ecs_task_count_low" {
-  alarm_name          = "khaleel-ecs-task-count-low"
+resource "aws_cloudwatch_metric_alarm" "khaleel_ecs_task_desired" {
+  alarm_name          = "khaleel-ecs-desired-task-low"
   comparison_operator = "LessThanThreshold"
   evaluation_periods  = 1
-  metric_name         = "RunningTaskCount"
+  metric_name         = "DesiredTaskCount"
   namespace           = "AWS/ECS"
   period              = 60
-  statistic           = "Minimum"
+  statistic           = "Average"
   threshold           = 1
 
   dimensions = {
@@ -54,6 +54,5 @@ resource "aws_cloudwatch_metric_alarm" "khaleel_ecs_task_count_low" {
     ServiceName = aws_ecs_service.khaleel_strapi_service.name
   }
 
-  alarm_description = "Task count is low for Khaleel Strapi ECS service"
-  depends_on        = [aws_ecs_service.khaleel_strapi_service]
+  alarm_description = "Desired task count dropped below 1"
 }

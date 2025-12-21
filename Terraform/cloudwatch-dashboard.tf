@@ -3,6 +3,8 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
 
   dashboard_body = jsonencode({
     widgets = [
+
+      # CPU
       {
         type = "metric",
         x = 0,
@@ -12,16 +14,15 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         properties = {
           metrics = [
             ["AWS/ECS", "CPUUtilization", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ]
-          period      = 60
-          stat        = "Average"
-          region      = "ap-south-1"
-          title       = "CPU Utilization"
-          view        = "timeSeries"
-          stacked     = false
-          annotations = {}
+          ],
+          period = 60,
+          stat   = "Average",
+          region = "ap-south-1",
+          title  = "CPU Utilization"
         }
       },
+
+      # Memory
       {
         type = "metric",
         x = 12,
@@ -31,16 +32,15 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         properties = {
           metrics = [
             ["AWS/ECS", "MemoryUtilization", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ]
-          period      = 60
-          stat        = "Average"
-          region      = "ap-south-1"
-          title       = "Memory Utilization"
-          view        = "timeSeries"
-          stacked     = false
-          annotations = {}
+          ],
+          period = 60,
+          stat   = "Average",
+          region = "ap-south-1",
+          title  = "Memory Utilization"
         }
       },
+
+      # ✅ TASK COUNT (FIXED)
       {
         type = "metric",
         x = 0,
@@ -49,17 +49,16 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         height = 6,
         properties = {
           metrics = [
-            ["AWS/ECS", "RunningTaskCount", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ]
-          period      = 60
-          stat        = "Minimum"
-          region      = "ap-south-1"
-          title       = "Running Task Count"
-          view        = "timeSeries"
-          stacked     = false
-          annotations = {}
+            ["AWS/ECS", "DesiredTaskCount", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
+          ],
+          period = 60,
+          stat   = "Average",
+          region = "ap-south-1",
+          title  = "Desired Task Count"
         }
       },
+
+      # ✅ NETWORK (Container Insights – FIXED)
       {
         type = "metric",
         x = 12,
@@ -68,22 +67,17 @@ resource "aws_cloudwatch_dashboard" "khaleel_dashboard" {
         height = 6,
         properties = {
           metrics = [
-            ["AWS/ECS", "NetworkRxBytes", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name],
-            ["AWS/ECS", "NetworkTxBytes", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name, "ServiceName", aws_ecs_service.khaleel_strapi_service.name]
-          ]
-          period      = 60
-          stat        = "Sum"
-          region      = "ap-south-1"
-          title       = "Network In / Out"
-          view        = "timeSeries"
-          stacked     = false
-          annotations = {}
+            ["ECS/ContainerInsights", "NetworkRxBytes", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name],
+            ["ECS/ContainerInsights", "NetworkTxBytes", "ClusterName", aws_ecs_cluster.khaleel_strapi_cluster.name]
+          ],
+          period = 60,
+          stat   = "Sum",
+          region = "ap-south-1",
+          title  = "Network In / Out"
         }
       }
     ]
   })
 
-  depends_on = [
-    aws_ecs_service.khaleel_strapi_service
-  ]
+  depends_on = [aws_ecs_service.khaleel_strapi_service]
 }

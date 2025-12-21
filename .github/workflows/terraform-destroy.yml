@@ -1,4 +1,4 @@
-name: CD - Terraform Destroy (ECS / ALB / RDS)
+name: Terraform-Destroy
 
 on:
   workflow_dispatch:
@@ -32,4 +32,6 @@ jobs:
 
       - name: Terraform Destroy
         working-directory: ./Terraform
-        run: terraform destroy -auto-approve
+        run: |
+          echo "Destroying Terraform infrastructure..."
+          terraform destroy -auto-approve -var="image_uri=dummy"
