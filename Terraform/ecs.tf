@@ -52,6 +52,15 @@ resource "aws_ecs_task_definition" "strapi_task" {
         }
       ]
 
+      # ✅ ADDED: Health check to ensure Strapi is fully started before marking as healthy
+      healthCheck = {
+        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:1337/ || exit 1"]
+        interval    = 30
+        timeout     = 10
+        retries     = 3
+        startPeriod = 90  # Give Strapi extra time to connect to database
+      }
+
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "HOST", value = "0.0.0.0" },

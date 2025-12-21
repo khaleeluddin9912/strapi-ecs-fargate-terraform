@@ -9,17 +9,18 @@ data "aws_db_subnet_group" "strapi_db" {
   name = "khaleel-strapi-db-subnet-group"
 }
 
-# RDS Security Group
+# RDS Security Group - FIXED VERSION
 resource "aws_security_group" "rds_sg" {
   name   = "khaleel-rds-sg"
   vpc_id = data.aws_vpc.default.id
 
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_sg.id]
-  }
+  # 🔴 REMOVED: The problematic ingress block with circular dependency
+  # ingress {
+  #   from_port       = 5432
+  #   to_port         = 5432
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.ecs_sg.id]
+  # }
 
   egress {
     from_port   = 0
@@ -27,6 +28,17 @@ resource "aws_security_group" "rds_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+# ✅ ADDED: Separate security group rule - fixes the circular dependency
+resource "aws_security_group_rule" "rds_allow_ecs" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs_sg.id
+  security_group_id        = aws_security_group.rds_sg.id
+  description              = "Allow ECS tasks to connect to RDS"
 }
 
 # RDS PostgreSQL Instance
@@ -45,8 +57,8 @@ resource "aws_db_instance" "strapi_db" {
   publicly_accessible    = true
   skip_final_snapshot    = true
   
-  # Add this depends_on block
-  depends_on = [
-    aws_security_group.ecs_sg  # This ensures ECS SG is created first
-  ]
+  # 🔴 REMOVED: depends_on block - doesn't solve the core issue
+  # depends_on = [
+  #   aws_security_group.ecs_sg
+  # ]
 }
