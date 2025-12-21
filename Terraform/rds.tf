@@ -33,7 +33,7 @@ resource "aws_security_group" "rds_sg" {
 resource "aws_db_instance" "strapi_db" {
   identifier             = "khaleel-strapi-db"
   engine                 = "postgres"
-  engine_version         = "16"   # ✅ Valid version
+  engine_version         = "16"
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   db_name                = "strapidb"
@@ -44,4 +44,9 @@ resource "aws_db_instance" "strapi_db" {
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   publicly_accessible    = true
   skip_final_snapshot    = true
+  
+  # Add this depends_on block
+  depends_on = [
+    aws_security_group.ecs_sg  # This ensures ECS SG is created first
+  ]
 }
