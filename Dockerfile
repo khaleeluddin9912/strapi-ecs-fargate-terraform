@@ -5,7 +5,9 @@ RUN apk add --no-cache python3 make g++ libc6-compat postgresql-client postgresq
 
 WORKDIR /app
 
-COPY strapi/package*.json ./
+COPY package*.json ./
+
+# Install all dependencies including pg from package.json
 RUN npm install
 
 COPY strapi/ ./
