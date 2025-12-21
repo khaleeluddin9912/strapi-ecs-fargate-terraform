@@ -1,12 +1,7 @@
-name: Terraform Destroy
+name: CD - Terraform Destroy (ECS / ALB / RDS)
 
 on:
   workflow_dispatch:
-    inputs:
-      confirm_destroy:
-        description: 'Type "YES" to confirm destruction of all Terraform resources'
-        required: true
-        default: 'NO'
 
 env:
   AWS_REGION: ap-south-1
@@ -34,17 +29,6 @@ jobs:
       - name: Terraform Init
         working-directory: ./Terraform
         run: terraform init
-
-      - name: Terraform Validate
-        working-directory: ./Terraform
-        run: terraform validate
-
-      - name: Confirm Destroy
-        run: |
-          if [ "${{ github.event.inputs.confirm_destroy }}" != "YES" ]; then
-            echo "❌ Destroy not confirmed. Type YES to destroy resources."
-            exit 1
-          fi
 
       - name: Terraform Destroy
         working-directory: ./Terraform

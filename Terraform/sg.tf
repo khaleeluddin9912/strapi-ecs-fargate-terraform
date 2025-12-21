@@ -18,7 +18,7 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-# ECS SG - UPDATED VERSION
+# ECS SG - CORRECT VERSION
 resource "aws_security_group" "ecs_sg" {
   name   = "khaleel-ecs-sg"
   vpc_id = data.aws_vpc.default.id
@@ -31,22 +31,23 @@ resource "aws_security_group" "ecs_sg" {
     security_groups = [aws_security_group.alb_sg.id]
   }
 
-  # 🔴 REMOVE THIS EGRESS - it's too permissive and won't work
-  # egress {
-  #   from_port   = 0
-  #   to_port     = 0
-  #   protocol    = "-1"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
+  # ✅ CRITICAL: KEEP THIS EGRESS RULE
+  # ECS needs this to reach ECR and download Docker images
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-# ✅ ADD: Specific egress rule for RDS connection
+# ✅ OPTIONAL: You can also add the specific RDS rule
 resource "aws_security_group_rule" "ecs_to_rds" {
-  type                     = "egress"  # ← OUTBOUND from ECS
-  from_port                = 5432      # ← TO RDS PORT
-  to_port                  = 5432      # ← TO RDS PORT
+  type                     = "egress"
+  from_port                = 5432
+  to_port                  = 5432
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.rds_sg.id  # ← TO RDS SG
-  security_group_id        = aws_security_group.ecs_sg.id  # ← FROM ECS SG
+  source_security_group_id = aws_security_group.rds_sg.id
+  security_group_id        = aws_security_group.ecs_sg.id
   description              = "Allow ECS to connect to RDS PostgreSQL"
 }
