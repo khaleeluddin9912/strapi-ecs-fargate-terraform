@@ -5,13 +5,8 @@ resource "random_password" "db_password" {
 }
 
 # ✅ CREATE RDS Subnet Group (FIX)
-resource "aws_db_subnet_group" "strapi_db" {
-  name       = "khaleel-strapi-db-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
-
-  tags = {
-    Name = "khaleel-strapi-db-subnet-group"
-  }
+data "aws_db_subnet_group" "strapi_db" {
+  name = "khaleel-strapi-db-subnet-group"
 }
 
 # RDS Security Group
