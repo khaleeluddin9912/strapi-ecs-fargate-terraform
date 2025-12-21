@@ -11,7 +11,7 @@ resource "aws_ecs_cluster" "khaleel_strapi_cluster" {
 }
 
 #################################
-# CAPACITY PROVIDERS (FARGATE SPOT)
+# CAPACITY PROVIDERS
 #################################
 resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
   cluster_name       = aws_ecs_cluster.khaleel_strapi_cluster.name
@@ -25,7 +25,7 @@ resource "aws_ecs_cluster_capacity_providers" "khaleel_cluster_capacity" {
 }
 
 #################################
-# ECS TASK DEFINITION
+# TASK DEFINITION
 #################################
 resource "aws_ecs_task_definition" "strapi_task" {
   family                   = "strapi-task"
@@ -34,7 +34,6 @@ resource "aws_ecs_task_definition" "strapi_task" {
   cpu                      = "512"
   memory                   = "1024"
 
-  # ⚠️ USING EXISTING ROLE ONLY (NO CREATION)
   execution_role_arn = data.aws_iam_role.ecs_execution.arn
   task_role_arn      = data.aws_iam_role.ecs_execution.arn
 
@@ -52,13 +51,13 @@ resource "aws_ecs_task_definition" "strapi_task" {
         }
       ]
 
-      # ✅ ADDED: Health check to ensure Strapi is fully started before marking as healthy
+      # ✅ CONTAINER HEALTH CHECK (CPU/MEM/NETWORK STABILITY)
       healthCheck = {
-        command     = ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:1337/ || exit 1"]
+        command     = ["CMD-SHELL", "wget -qO- http://localhost:1337/ || exit 1"]
         interval    = 30
         timeout     = 10
         retries     = 3
-        startPeriod = 90  # Give Strapi extra time to connect to database
+        startPeriod = 90
       }
 
       environment = [
@@ -73,7 +72,6 @@ resource "aws_ecs_task_definition" "strapi_task" {
         { name = "DATABASE_USERNAME", value = "strapiadmin" },
         { name = "DATABASE_PASSWORD", value = random_password.db_password.result },
 
-        # ✅ CRITICAL: Add SSL connection parameters
         { name = "DATABASE_SSL", value = "true" },
         { name = "DATABASE_SSL_REJECT_UNAUTHORIZED", value = "false" },
 
@@ -96,13 +94,19 @@ resource "aws_ecs_task_definition" "strapi_task" {
 }
 
 #################################
-# ECS SERVICE (FARGATE SPOT)
+# ECS SERVICE
 #################################
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
   task_definition = aws_ecs_task_definition.strapi_task.arn
   desired_count   = 1
+
+  # ✅ CRITICAL: SERVICE-LEVEL HEALTH GRACE PERIOD
+  health_check_grace_period_seconds = 120
+
+  enable_ecs_managed_tags = true
+  enable_execute_command  = true
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
