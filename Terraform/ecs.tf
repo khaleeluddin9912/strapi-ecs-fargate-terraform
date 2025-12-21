@@ -73,6 +73,10 @@ resource "aws_ecs_task_definition" "strapi_task" {
         { name = "DATABASE_USERNAME", value = "strapiadmin" },
         { name = "DATABASE_PASSWORD", value = random_password.db_password.result },
 
+        # ✅ CRITICAL: Add SSL connection parameters
+        { name = "DATABASE_SSL", value = "true" },
+        { name = "DATABASE_SSL_REJECT_UNAUTHORIZED", value = "false" },
+
         { name = "APP_KEYS", value = "${random_password.app_key1.result},${random_password.app_key2.result},${random_password.app_key3.result},${random_password.app_key4.result}" },
         { name = "API_TOKEN_SALT", value = random_password.api_salt.result },
         { name = "ADMIN_JWT_SECRET", value = random_password.admin_jwt.result },
