@@ -2,15 +2,17 @@ resource "aws_lb" "strapi_alb" {
   name               = "khaleel-strapi-alb"
   load_balancer_type = "application"
   internal           = false
-  subnets            = data.aws_subnets.default.ids
-  security_groups    = [aws_security_group.alb_sg.id]
+
+  subnets         = data.aws_subnets.default.ids
+  security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "strapi_blue" {
-  name     = "khaleel-strapi-blue"
-  port     = 1337
-  protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
+  name        = "khaleel-strapi-blue"
+  port        = 1337
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"   # ✅ REQUIRED FOR FARGATE
 
   health_check {
     path                = "/admin"
@@ -24,10 +26,11 @@ resource "aws_lb_target_group" "strapi_blue" {
 }
 
 resource "aws_lb_target_group" "strapi_green" {
-  name     = "khaleel-strapi-green"
-  port     = 1337
-  protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
+  name        = "khaleel-strapi-green"
+  port        = 1337
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"   # ✅ REQUIRED FOR FARGATE
 
   health_check {
     path                = "/admin"
