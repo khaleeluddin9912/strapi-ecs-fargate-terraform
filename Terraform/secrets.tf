@@ -1,3 +1,4 @@
+# Strapi application secrets
 resource "random_password" "app_key1" { length = 32; special = false }
 resource "random_password" "app_key2" { length = 32; special = false }
 resource "random_password" "app_key3" { length = 32; special = false }
