@@ -52,6 +52,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
         { name = "NODE_ENV", value = "production" },
         { name = "HOST", value = "0.0.0.0" },
         { name = "PORT", value = "1337" },
+
         { name = "DATABASE_CLIENT", value = "postgres" },
         { name = "DATABASE_HOST", value = aws_db_instance.strapi_db.address },
         { name = "DATABASE_PORT", value = "5432" },
@@ -60,6 +61,7 @@ resource "aws_ecs_task_definition" "strapi_task" {
         { name = "DATABASE_PASSWORD", value = random_password.db_password.result },
         { name = "DATABASE_SSL", value = "true" },
         { name = "DATABASE_SSL_REJECT_UNAUTHORIZED", value = "false" },
+
         { name = "APP_KEYS", value = local.strapi_secrets.APP_KEYS },
         { name = "API_TOKEN_SALT", value = local.strapi_secrets.API_TOKEN_SALT },
         { name = "ADMIN_JWT_SECRET", value = local.strapi_secrets.ADMIN_JWT_SECRET },
@@ -81,8 +83,12 @@ resource "aws_ecs_task_definition" "strapi_task" {
 resource "aws_ecs_service" "khaleel_strapi_service" {
   name            = "khaleel-strapi-service"
   cluster         = aws_ecs_cluster.khaleel_strapi_cluster.id
-  desired_count   = 1
-  launch_type     = "FARGATE"
+
+  # ✅ REQUIRED even for CodeDeploy
+  task_definition = aws_ecs_task_definition.strapi_task.arn
+
+  desired_count = 1
+  launch_type   = "FARGATE"
 
   deployment_controller {
     type = "CODE_DEPLOY"
