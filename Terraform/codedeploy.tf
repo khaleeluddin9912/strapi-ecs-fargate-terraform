@@ -6,8 +6,7 @@ resource "aws_codedeploy_app" "strapi_app" {
 resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
   app_name              = aws_codedeploy_app.strapi_app.name
   deployment_group_name = "khaleel-strapi-dg"
-
-  service_role_arn = data.aws_iam_role.codedeploy_role.arn
+  service_role_arn      = data.aws_iam_role.ecs_execution.arn
 
   deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
 
@@ -18,7 +17,7 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
 
   blue_green_deployment_config {
     terminate_blue_instances_on_deployment_success {
-      action                           = "TERMINATE"
+      action                          = "TERMINATE"
       termination_wait_time_in_minutes = 5
     }
 
