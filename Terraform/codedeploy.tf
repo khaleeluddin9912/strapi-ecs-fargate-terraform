@@ -14,7 +14,7 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
   deployment_group_name = "khaleel-strapi-dg"
 
   # Replace this with the ARN of your CodeDeploy service role
-  service_role_arn = "arn:aws:iam::301782007642:role/khaleel-codedeploy-role"
+  service_role_arn = aws_iam_role.codedeploy_role.arn
 
   deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
 
