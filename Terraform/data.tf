@@ -1,9 +1,9 @@
-# Get default VPC
+# Default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get default subnets (one per AZ)
+# Default subnets (one per AZ)
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
@@ -14,4 +14,9 @@ data "aws_subnets" "default" {
     name   = "default-for-az"
     values = ["true"]
   }
+}
+
+# ECS Execution Role
+data "aws_iam_role" "ecs_execution" {
+  name = "khaleel-ecs-execution-role"
 }

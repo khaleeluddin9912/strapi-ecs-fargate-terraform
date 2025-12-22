@@ -1,39 +1,10 @@
-# Strapi application secrets
-
-resource "random_password" "app_key1" {
-  length  = 32
-  special = false
-}
-
-resource "random_password" "app_key2" {
-  length  = 32
-  special = false
-}
-
-resource "random_password" "app_key3" {
-  length  = 32
-  special = false
-}
-
-resource "random_password" "app_key4" {
-  length  = 32
-  special = false
-}
-
-resource "random_password" "api_salt" {
-  length  = 32
-  special = true
-}
-
-resource "random_password" "admin_jwt" {
-  length  = 32
-  special = true
-}
-
-resource "random_password" "jwt_secret" {
-  length  = 32
-  special = true
-}
+resource "random_password" "app_key1" { length = 32; special = false }
+resource "random_password" "app_key2" { length = 32; special = false }
+resource "random_password" "app_key3" { length = 32; special = false }
+resource "random_password" "app_key4" { length = 32; special = false }
+resource "random_password" "api_salt" { length = 32; special = true }
+resource "random_password" "admin_jwt" { length = 32; special = true }
+resource "random_password" "jwt_secret" { length = 32; special = true }
 
 locals {
   strapi_secrets = {
