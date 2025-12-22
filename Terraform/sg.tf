@@ -1,4 +1,3 @@
-# ALB Security Group
 resource "aws_security_group" "alb_sg" {
   name   = "khaleel-alb-sg"
   vpc_id = data.aws_vpc.default.id
@@ -25,7 +24,6 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-# ECS Security Group
 resource "aws_security_group" "ecs_sg" {
   name   = "khaleel-ecs-sg"
   vpc_id = data.aws_vpc.default.id

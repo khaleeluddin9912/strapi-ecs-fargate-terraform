@@ -16,7 +16,3 @@ data "aws_subnets" "default" {
   }
 }
 
-# IAM execution role
-data "aws_iam_role" "ecs_execution" {
-  name = "khaleel-ecs-execution-role"
-}

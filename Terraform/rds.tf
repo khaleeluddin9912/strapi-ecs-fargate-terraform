@@ -1,15 +1,12 @@
-# DB password
 resource "random_password" "db_password" {
   length  = 16
   special = false
 }
 
-# Use existing DB subnet group (DO NOT CREATE)
 data "aws_db_subnet_group" "strapi_db" {
   name = "khaleel-strapi-db-subnet-group"
 }
 
-# RDS Security Group
 resource "aws_security_group" "rds_sg" {
   name   = "khaleel-rds-sg"
   vpc_id = data.aws_vpc.default.id
@@ -22,7 +19,6 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
-# Allow ECS → RDS
 resource "aws_security_group_rule" "rds_allow_ecs" {
   type                     = "ingress"
   from_port                = 5432
@@ -32,21 +28,17 @@ resource "aws_security_group_rule" "rds_allow_ecs" {
   security_group_id        = aws_security_group.rds_sg.id
 }
 
-# RDS Instance
 resource "aws_db_instance" "strapi_db" {
-  identifier = "khaleel-strapi-db"
-
-  engine         = "postgres"
-  engine_version = "16"
-  instance_class = "db.t3.micro"
-
-  allocated_storage = 20
-  db_name           = "strapidb"
-  username          = "strapiadmin"
-  password          = random_password.db_password.result
-  port              = 5432
-
-  db_subnet_group_name  = data.aws_db_subnet_group.strapi_db.name
+  identifier             = "khaleel-strapi-db"
+  engine                 = "postgres"
+  engine_version         = "16"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  db_name                = "strapidb"
+  username               = "strapiadmin"
+  password               = random_password.db_password.result
+  port                   = 5432
+  db_subnet_group_name   = data.aws_db_subnet_group.strapi_db.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   publicly_accessible    = true
   skip_final_snapshot    = true
