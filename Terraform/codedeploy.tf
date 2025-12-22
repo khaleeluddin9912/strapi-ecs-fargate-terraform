@@ -1,23 +1,37 @@
+#################################
+# CodeDeploy Application (ECS)
+#################################
 resource "aws_codedeploy_app" "strapi_app" {
   name             = "khaleel-strapi-app"
   compute_platform = "ECS"
 }
 
+#################################
+# CodeDeploy Deployment Group
+#################################
 resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
   app_name              = aws_codedeploy_app.strapi_app.name
   deployment_group_name = "khaleel-strapi-dg"
-  service_role_arn      = data.aws_iam_role.ecs_execution.arn
+
+  # Replace this with the ARN of your CodeDeploy service role
+  service_role_arn = "arn:aws:iam::301782007642:role/khaleel-codedeploy-role"
 
   deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
 
+  #################################
+  # ECS Service Mapping
+  #################################
   ecs_service {
     cluster_name = aws_ecs_cluster.khaleel_strapi_cluster.name
     service_name = aws_ecs_service.khaleel_strapi_service.name
   }
 
+  #################################
+  # Blue / Green Configuration
+  #################################
   blue_green_deployment_config {
     terminate_blue_instances_on_deployment_success {
-      action                          = "TERMINATE"
+      action                           = "TERMINATE"
       termination_wait_time_in_minutes = 5
     }
 
@@ -30,6 +44,9 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
     }
   }
 
+  #################################
+  # Load Balancer Configuration
+  #################################
   load_balancer_info {
     target_group_pair_info {
       target_group {
@@ -46,6 +63,9 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
     }
   }
 
+  #################################
+  # Auto Rollback
+  #################################
   auto_rollback_configuration {
     enabled = true
     events  = [
