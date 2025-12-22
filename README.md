@@ -1,5 +1,6 @@
 # 🚀 Strapi Deployment on AWS ECS (Fargate) using Terraform
 
+
 This project deploys a Strapi application on AWS ECS Fargate using Terraform, with Docker images pulled from Amazon ECR and logs sent to CloudWatch Logs.
 
 # 🧱 Architecture Overview
