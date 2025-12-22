@@ -13,10 +13,18 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
   app_name              = aws_codedeploy_app.strapi_app.name
   deployment_group_name = "khaleel-strapi-dg"
 
-  # Replace this with the ARN of your CodeDeploy service role
+  # Use the newly created CodeDeploy role
   service_role_arn = aws_iam_role.codedeploy_role.arn
 
   deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
+
+  #################################
+  # Deployment Style (Required for ECS)
+  #################################
+  deployment_style {
+    deployment_type = "BLUE_GREEN"
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+  }
 
   #################################
   # ECS Service Mapping
