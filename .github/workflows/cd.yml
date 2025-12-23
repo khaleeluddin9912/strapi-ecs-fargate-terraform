@@ -130,5 +130,4 @@ jobs:
           aws deploy create-deployment \
             --application-name khaleel-strapi-app \
             --deployment-group-name khaleel-strapi-dg \
-            --s3-location bucket=bucket-mku,key=revision.zip,bundleType=zip \
-            --description "Deployment triggered via GitHub Actions - Image: ${{ github.event.inputs.image_tag }}"
+            --s3-location bucket=bucket-mku,key=revision.zip,bundleType=zip
