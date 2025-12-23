@@ -12,7 +12,7 @@ resource "aws_lb_target_group" "strapi_blue" {
   port        = 1337
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
-  target_type = "ip"   # ✅ REQUIRED FOR FARGATE
+  target_type = "ip"   
 
   health_check {
     path                = "/admin"
@@ -30,7 +30,7 @@ resource "aws_lb_target_group" "strapi_green" {
   port        = 1337
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
-  target_type = "ip"   # ✅ REQUIRED FOR FARGATE
+  target_type = "ip"   
 
   health_check {
     path                = "/admin"
