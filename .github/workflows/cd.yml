@@ -51,18 +51,19 @@ jobs:
       # ==============================
       
       - name: Get RDS endpoint from Terraform
-        id: get-rds # ✅ ADDED: Required step ID for referencing outputs
+        id: get-rds
         working-directory: ./Terraform
         run: |
           # Get only the hostname part (before :5432)
           RDS_ENDPOINT=$(terraform output -raw rds_endpoint | cut -d':' -f1)
           echo "RDS endpoint: $RDS_ENDPOINT"
-          echo "RDS_HOST=$RDS_ENDPOINT" >> "$GITHUB_ENV" # ✅ FIXED: Correct path for env file
+          # ✅ FIXED: Use proper output method
+          echo "rds_host=$RDS_ENDPOINT" >> $GITHUB_OUTPUT
 
       - name: Update task definition with dynamic values
         run: |
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
-          RDS_ENDPOINT="${{ env.RDS_HOST }}"
+          RDS_ENDPOINT="${{ steps.get-rds.outputs.rds_host }}"
           
           echo "Updating taskdef.json with:"
           echo "Image: $IMAGE_URI"
@@ -76,7 +77,7 @@ jobs:
             sed -i "s|<RDS_ENDPOINT>|$RDS_ENDPOINT|g" taskdef.json
           fi
           
-          # Update other secrets - FIXED SYNTAX
+          # Update other secrets
           sed -i "s|<DATABASE_PASSWORD>|${{ secrets.DATABASE_PASSWORD }}|g" taskdef.json
           sed -i "s|<APP_KEYS>|${{ secrets.APP_KEYS }}|g" taskdef.json
           sed -i "s|<API_TOKEN_SALT>|${{ secrets.API_TOKEN_SALT }}|g" taskdef.json
