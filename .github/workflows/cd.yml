@@ -31,32 +31,101 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init
-        working-directory: ./Terraform
-        run: terraform init
+      - name: Get RDS endpoint
+        id: rds
+        run: |
+          RDS_ENDPOINT=$(aws rds describe-db-instances \
+            --db-instance-identifier khaleel-strapi-db \
+            --query 'DBInstances[0].Endpoint.Address' \
+            --output text)
+          echo "RDS_ENDPOINT=$RDS_ENDPOINT" >> $GITHUB_OUTPUT
 
-      - name: Terraform Validate
-        working-directory: ./Terraform
-        run: terraform validate
-
-      - name: Terraform Apply
-        working-directory: ./Terraform
+      - name: Update task definition
         run: |
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
-          echo "Deploying ECS Task with image: $IMAGE_URI"
-          terraform apply -auto-approve -var="image_uri=$IMAGE_URI"
+          
+          # Create taskdef.json with actual values
+          cat > taskdef.json << EOF
+          {
+            "family": "strapi-task",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "512",
+            "memory": "1024",
+            "executionRoleArn": "arn:aws:iam::301782007642:role/khaleel-ecs-execution-role",
+            "taskRoleArn": "arn:aws:iam::301782007642:role/khaleel-ecs-execution-role",
+            "containerDefinitions": [
+              {
+                "name": "strapi",
+                "image": "$IMAGE_URI",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 1337,
+                    "protocol": "tcp"
+                  }
+                ],
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "wget -qO- http://localhost:1337/ || exit 1"],
+                  "interval": 30,
+                  "timeout": 10,
+                  "retries": 3,
+                  "startPeriod": 90
+                },
+                "environment": [
+                  { "name": "NODE_ENV", "value": "production" },
+                  { "name": "HOST", "value": "0.0.0.0" },
+                  { "name": "PORT", "value": "1337" },
+                  { "name": "DATABASE_CLIENT", "value": "postgres" },
+                  { "name": "DATABASE_HOST", "value": "${{ steps.rds.outputs.RDS_ENDPOINT }}" },
+                  { "name": "DATABASE_PORT", "value": "5432" },
+                  { "name": "DATABASE_NAME", "value": "strapidb" },
+                  { "name": "DATABASE_USERNAME", "value": "strapiadmin" },
+                  { "name": "DATABASE_PASSWORD", "value": "${{ secrets.DATABASE_PASSWORD }}" },
+                  { "name": "DATABASE_SSL", "value": "true" },
+                  { "name": "DATABASE_SSL_REJECT_UNAUTHORIZED", "value": "false" },
+                  { "name": "APP_KEYS", "value": "${{ secrets.APP_KEYS }}" },
+                  { "name": "API_TOKEN_SALT", "value": "${{ secrets.API_TOKEN_SALT }}" },
+                  { "name": "ADMIN_JWT_SECRET", "value": "${{ secrets.ADMIN_JWT_SECRET }}" },
+                  { "name": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET }}" }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/khaleel-strapi",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                }
+              }
+            ]
+          }
+          EOF
 
-      # ==============================
-      # Blue/Green Deployment Trigger
-      # ==============================
-      - name: Update task definition image
+      - name: Create appspec.yml
         run: |
-          IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
-          sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" taskdef.json
+          cat > appspec.yml << EOF
+          version: 0.0
+          Resources:
+            - TargetService:
+                Type: AWS::ECS::Service
+                Properties:
+                  TaskDefinition: taskdef.json
+                  LoadBalancerInfo:
+                    ContainerName: "strapi"
+                    ContainerPort: 1337
+                  PlatformVersion: "LATEST"
+          Hooks:
+            - BeforeInstall: "ValidateService"
+            - AfterInstall: "MonitorService"
+            - AfterAllowTestTraffic: "MonitorService"
+            - BeforeAllowTraffic: "MonitorService"
+            - AfterAllowTraffic: "MonitorService"
+          EOF
 
       - name: Package AppSpec revision
         run: |
-          zip revision.zip appspec.yml taskdef.json
+          zip -r revision.zip appspec.yml taskdef.json
 
       - name: Upload revision to S3
         run: |
@@ -64,7 +133,15 @@ jobs:
 
       - name: Start CodeDeploy Blue/Green deployment
         run: |
-          aws deploy create-deployment \
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
             --application-name khaleel-strapi-app \
             --deployment-group-name khaleel-strapi-dg \
-            --s3-location bucket=bucket-mku,key=revision.zip,bundleType=zip
+            --s3-location bucket=bucket-mku,key=revision.zip,bundleType=zip \
+            --query 'deploymentId' \
+            --output text)
+          
+          echo "Deployment ID: $DEPLOYMENT_ID"
+          
+          # Wait for deployment to complete
+          aws deploy wait deployment-successful \
+            --deployment-id $DEPLOYMENT_ID

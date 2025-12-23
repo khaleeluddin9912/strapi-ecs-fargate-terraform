@@ -1,9 +1,16 @@
-version: 1
+version: 0.0
 Resources:
   - TargetService:
       Type: AWS::ECS::Service
       Properties:
-        TaskDefinition: <TASK_DEFINITION_ARN>
+        TaskDefinition: taskdef.json
         LoadBalancerInfo:
-          ContainerName: strapi
+          ContainerName: "strapi"
           ContainerPort: 1337
+        PlatformVersion: "LATEST"
+Hooks:
+  - BeforeInstall: "ValidateService"
+  - AfterInstall: "MonitorService"
+  - AfterAllowTestTraffic: "MonitorService"
+  - BeforeAllowTraffic: "MonitorService"
+  - AfterAllowTraffic: "MonitorService"
