@@ -16,14 +16,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ==============================
+      # Checkout Code
+      # ==============================
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # ==============================
+      # Setup Terraform
+      # ==============================
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
+      # ==============================
+      # Configure AWS Credentials
+      # ==============================
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -31,6 +40,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # ==============================
+      # Terraform Init & Validate
+      # ==============================
       - name: Terraform Init
         working-directory: ./Terraform
         run: terraform init
@@ -39,6 +51,9 @@ jobs:
         working-directory: ./Terraform
         run: terraform validate
 
+      # ==============================
+      # Terraform Apply (ECS Deploy)
+      # ==============================
       - name: Terraform Apply
         working-directory: ./Terraform
         run: |
@@ -47,86 +62,88 @@ jobs:
           terraform apply -auto-approve -var="image_uri=$IMAGE_URI"
 
       # ==============================
-      # Blue/Green Deployment Trigger
+      # Get RDS Endpoint (FIXED)
       # ==============================
-      
       - name: Get RDS endpoint from Terraform
         id: get-rds
         working-directory: ./Terraform
+        shell: bash
         run: |
-          # Get only the hostname part (before :5432)
-          RDS_ENDPOINT=$(terraform output -raw rds_endpoint | cut -d':' -f1)
-          echo "RDS endpoint: $RDS_ENDPOINT"
-          # ✅ FIXED: Use proper output method
-          echo "rds_host=$RDS_ENDPOINT" >> $GITHUB_OUTPUT
+          RDS_ENDPOINT=$(terraform output -raw rds_endpoint | tr -d '\n' | cut -d':' -f1)
+          echo "rds_host=${RDS_ENDPOINT}" >> "$GITHUB_OUTPUT"
 
+      # ==============================
+      # Update Task Definition
+      # ==============================
       - name: Update task definition with dynamic values
+        shell: bash
         run: |
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
           RDS_ENDPOINT="${{ steps.get-rds.outputs.rds_host }}"
-          
+
           echo "Updating taskdef.json with:"
-          echo "Image: $IMAGE_URI"
-          echo "RDS: $RDS_ENDPOINT"
-          
-          # Update image placeholder
+          echo "Image URI: $IMAGE_URI"
+          echo "RDS Endpoint: $RDS_ENDPOINT"
+
           sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" taskdef.json
-          
-          # Update RDS endpoint if placeholder exists
-          if grep -q "<RDS_ENDPOINT>" taskdef.json; then
-            sed -i "s|<RDS_ENDPOINT>|$RDS_ENDPOINT|g" taskdef.json
-          fi
-          
-          # Update other secrets
+          sed -i "s|<RDS_ENDPOINT>|$RDS_ENDPOINT|g" taskdef.json
           sed -i "s|<DATABASE_PASSWORD>|${{ secrets.DATABASE_PASSWORD }}|g" taskdef.json
           sed -i "s|<APP_KEYS>|${{ secrets.APP_KEYS }}|g" taskdef.json
           sed -i "s|<API_TOKEN_SALT>|${{ secrets.API_TOKEN_SALT }}|g" taskdef.json
           sed -i "s|<ADMIN_JWT_SECRET>|${{ secrets.ADMIN_JWT_SECRET }}|g" taskdef.json
           sed -i "s|<JWT_SECRET>|${{ secrets.JWT_SECRET }}|g" taskdef.json
 
+      # ==============================
+      # Validate Files
+      # ==============================
       - name: Validate files before packaging
+        shell: bash
         run: |
           echo "Validating files..."
-          
-          # Check if files exist
-          if [ ! -f "appspec.yml" ]; then
-            echo "❌ ERROR: appspec.yml not found!"
-            exit 1
-          fi
-          
-          if [ ! -f "taskdef.json" ]; then
-            echo "❌ ERROR: taskdef.json not found!"
-            exit 1
-          fi
-          
-          # Validate JSON syntax
-          if ! jq empty taskdef.json 2>/dev/null; then
-            echo "❌ ERROR: taskdef.json has invalid JSON syntax"
-            exit 1
-          fi
-          
-          # Check appspec version
-          if ! grep -q "version: 0.0" appspec.yml; then
-            echo "❌ ERROR: appspec.yml must have 'version: 0.0'"
-            exit 1
-          fi
-          
-          echo "✅ All files validated successfully"
 
+          if [ ! -f "appspec.yml" ]; then
+            echo "❌ ERROR: appspec.yml not found"
+            exit 1
+          fi
+
+          if [ ! -f "taskdef.json" ]; then
+            echo "❌ ERROR: taskdef.json not found"
+            exit 1
+          fi
+
+          if ! jq empty taskdef.json 2>/dev/null; then
+            echo "❌ ERROR: taskdef.json is invalid JSON"
+            exit 1
+          fi
+
+          if ! grep -q "version: 0.0" appspec.yml; then
+            echo "❌ ERROR: appspec.yml must contain version: 0.0"
+            exit 1
+          fi
+
+          echo "✅ Validation successful"
+
+      # ==============================
+      # Package Revision
+      # ==============================
       - name: Package AppSpec revision
         run: |
-          echo "Packaging files..."
           zip -r revision.zip appspec.yml taskdef.json
-          echo "Package created successfully"
+          echo "Revision package created"
 
+      # ==============================
+      # Upload to S3
+      # ==============================
       - name: Upload revision to S3
         run: |
           aws s3 cp revision.zip s3://bucket-mku/revision.zip
           echo "Revision uploaded to S3"
 
+      # ==============================
+      # Trigger CodeDeploy Blue/Green
+      # ==============================
       - name: Start CodeDeploy Blue/Green deployment
         run: |
-          echo "Starting CodeDeploy Blue/Green deployment..."
           aws deploy create-deployment \
             --application-name khaleel-strapi-app \
             --deployment-group-name khaleel-strapi-dg \
