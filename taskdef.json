@@ -32,7 +32,7 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "/ecs/strapi",
+          "awslogs-group": "/ecs/khaleel-strapi",
           "awslogs-region": "ap-south-1",
           "awslogs-stream-prefix": "ecs"
         }

@@ -1,5 +1,4 @@
 version: 1
-
 Resources:
   - TargetService:
       Type: AWS::ECS::Service
@@ -8,4 +7,3 @@ Resources:
         LoadBalancerInfo:
           ContainerName: strapi
           ContainerPort: 1337
-        PlatformVersion: LATEST
