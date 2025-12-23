@@ -45,3 +45,26 @@ jobs:
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
           echo "Deploying ECS Task with image: $IMAGE_URI"
           terraform apply -auto-approve -var="image_uri=$IMAGE_URI"
+
+      # ==============================
+      # Blue/Green Deployment Trigger
+      # ==============================
+      - name: Update task definition image
+        run: |
+          IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
+          sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" taskdef.json
+
+      - name: Package AppSpec revision
+        run: |
+          zip revision.zip appspec.yml taskdef.json
+
+      - name: Upload revision to S3
+        run: |
+          aws s3 cp revision.zip s3://bucket-mku/revision.zip
+
+      - name: Start CodeDeploy Blue/Green deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name khaleel-strapi-app \
+            --deployment-group-name khaleel-strapi-dg \
+            --s3-location bucket=bucket-mku,key=revision.zip,bundleType=zip
