@@ -40,7 +40,6 @@ jobs:
         run: terraform validate
 
       - name: Terraform Apply
-        id: terraform-apply
         working-directory: ./Terraform
         run: |
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
@@ -48,56 +47,88 @@ jobs:
           terraform apply -auto-approve -var="image_uri=$IMAGE_URI"
 
       # ==============================
-      # Get RDS endpoint from Terraform Outputs
+      # Blue/Green Deployment Trigger
       # ==============================
+      
       - name: Get RDS endpoint from Terraform
         id: get-rds
         working-directory: ./Terraform
         run: |
-          # Get RDS endpoint from Terraform state
-          RDS_ENDPOINT=$(terraform output -raw rds_endpoint)
-          echo "RDS_ENDPOINT=$RDS_ENDPOINT" >> $GITHUB_ENV
-          echo "RDS endpoint retrieved: $RDS_ENDPOINT"
+          # Get only the hostname part (before :5432)
+          RDS_ENDPOINT=$(terraform output -raw rds_endpoint | cut -d':' -f1)
+          echo "RDS endpoint: $RDS_ENDPOINT"
+          echo "RDS_HOST=$RDS_ENDPOINT" >> $GITHUB_ENV
 
-      # ==============================
-      # Blue/Green Deployment Trigger
-      # ==============================
       - name: Update task definition with dynamic values
         run: |
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
-          RDS_ENDPOINT="${{ env.RDS_ENDPOINT }}"
+          RDS_ENDPOINT="${{ env.RDS_HOST }}"
           
-          # Update the existing taskdef.json file with all values
-          sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" taskdef.json
-          sed -i "s|<RDS_ENDPOINT>|$RDS_ENDPOINT|g" taskdef.json
-          sed -i "s|<DATABASE_PASSWORD>|${{ secrets.DATABASE_PASSWORD }}|g" taskdef.json
-          sed -i "s|<APP_KEYS>|${{ secrets.APP_KEYS }}|g" taskdef.json
-          sed -i "s|<API_TOKEN_SALT>|${{ secrets.API_TOKEN_SALT }}|g" taskdef.json
-          sed -i "s|<ADMIN_JWT_SECRET>|${{ secrets.ADMIN_JWT_SECRET }}|g" taskdef.json
-          sed -i "s|<JWT_SECRET>|${{ secrets.JWT_SECRET }}|g" taskdef.json
-          
-          echo "Task definition updated with:"
+          echo "Updating taskdef.json with:"
           echo "Image: $IMAGE_URI"
-          echo "RDS Endpoint: $RDS_ENDPOINT"
+          echo "RDS: $RDS_ENDPOINT"
+          
+          # Update image placeholder
+          sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" taskdef.json
+          
+          # Update RDS endpoint if placeholder exists
+          if grep -q "<RDS_ENDPOINT>" taskdef.json; then
+            sed -i "s|<RDS_ENDPOINT>|$RDS_ENDPOINT|g" taskdef.json
+          fi
+          
+          # Update other secrets if placeholders exist
+          secrets=("DATABASE_PASSWORD" "APP_KEYS" "API_TOKEN_SALT" "ADMIN_JWT_SECRET" "JWT_SECRET")
+          for secret in "${secrets[@]}"; do
+            if grep -q "<$secret>" taskdef.json; then
+              sed -i "s|<$secret>|${{ secrets[secret] }}|g" taskdef.json
+            fi
+          done
+
+      - name: Validate files before packaging
+        run: |
+          echo "Validating files..."
+          
+          # Check if files exist
+          if [ ! -f "appspec.yml" ]; then
+            echo "❌ ERROR: appspec.yml not found!"
+            exit 1
+          fi
+          
+          if [ ! -f "taskdef.json" ]; then
+            echo "❌ ERROR: taskdef.json not found!"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          if ! jq empty taskdef.json 2>/dev/null; then
+            echo "❌ ERROR: taskdef.json has invalid JSON syntax"
+            exit 1
+          fi
+          
+          # Check appspec version
+          if ! grep -q "version: 0.0" appspec.yml; then
+            echo "❌ ERROR: appspec.yml must have 'version: 0.0'"
+            exit 1
+          fi
+          
+          echo "✅ All files validated successfully"
 
       - name: Package AppSpec revision
         run: |
-          echo "Creating revision.zip with:"
-          ls -la appspec.yml taskdef.json
-          zip revision.zip appspec.yml taskdef.json
+          echo "Packaging files..."
+          zip -r revision.zip appspec.yml taskdef.json
           echo "Package created successfully"
 
       - name: Upload revision to S3
         run: |
-          echo "Uploading to S3..."
           aws s3 cp revision.zip s3://bucket-mku/revision.zip
-          echo "Upload completed"
+          echo "Revision uploaded to S3"
 
       - name: Start CodeDeploy Blue/Green deployment
         run: |
-          echo "Starting CodeDeploy deployment..."
+          echo "Starting CodeDeploy Blue/Green deployment..."
           aws deploy create-deployment \
             --application-name khaleel-strapi-app \
             --deployment-group-name khaleel-strapi-dg \
             --s3-location bucket=bucket-mku,key=revision.zip,bundleType=zip \
-            --description "Deployment triggered via GitHub Actions"
+            --description "Deployment triggered via GitHub Actions - Image: ${{ github.event.inputs.image_tag }}"
