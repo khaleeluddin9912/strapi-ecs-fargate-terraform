@@ -29,7 +29,7 @@
         { "name": "HOST", "value": "0.0.0.0" },
         { "name": "PORT", "value": "1337" },
         { "name": "DATABASE_CLIENT", "value": "postgres" },
-        { "name": "DATABASE_HOST", "value": "<DATABASE_ENDPOINT>" },
+        { "name": "DATABASE_HOST", "value": "<RDS_ENDPOINT>" },
         { "name": "DATABASE_PORT", "value": "5432" },
         { "name": "DATABASE_NAME", "value": "strapidb" },
         { "name": "DATABASE_USERNAME", "value": "strapiadmin" },
