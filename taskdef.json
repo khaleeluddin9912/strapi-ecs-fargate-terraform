@@ -11,45 +11,36 @@
       "name": "strapi",
       "image": "<IMAGE_URI>",
       "essential": true,
-      "portMappings": [
-        {
-          "containerPort": 1337,
-          "protocol": "tcp"
-        }
-      ],
+      "portMappings": [{"containerPort": 1337,"protocol": "tcp"}],
       "healthCheck": {
-        "command": ["CMD-SHELL", "wget -qO- http://localhost:1337/ || exit 1"],
+        "command": ["CMD-SHELL","wget -qO- http://localhost:1337/ || exit 1"],
         "interval": 30,
         "timeout": 10,
         "retries": 3,
         "startPeriod": 90
       },
       "environment": [
-        { "name": "NODE_ENV", "value": "production" },
-        { "name": "HOST", "value": "0.0.0.0" },
-        { "name": "PORT", "value": "1337" },
-
-        { "name": "DATABASE_CLIENT", "value": "postgres" },
-        { "name": "DATABASE_HOST", "value": "<RDS_ENDPOINT>" },
-        { "name": "DATABASE_PORT", "value": "5432" },
-        { "name": "DATABASE_NAME", "value": "strapidb" },
-        { "name": "DATABASE_USERNAME", "value": "strapiadmin" },
-        { "name": "DATABASE_PASSWORD", "value": "<DATABASE_PASSWORD>" },
-
-        { "name": "DATABASE_SSL", "value": "true" },
-        { "name": "DATABASE_SSL_REJECT_UNAUTHORIZED", "value": "false" },
-
-        { "name": "APP_KEYS", "value": "<APP_KEYS>" },
-        { "name": "API_TOKEN_SALT", "value": "<API_TOKEN_SALT>" },
-        { "name": "ADMIN_JWT_SECRET", "value": "<ADMIN_JWT_SECRET>" },
-        { "name": "JWT_SECRET", "value": "<JWT_SECRET>" }
+        {"name": "NODE_ENV","value":"production"},
+        {"name": "HOST","value":"0.0.0.0"},
+        {"name": "PORT","value":"1337"},
+        {"name": "DATABASE_CLIENT","value":"postgres"},
+        {"name": "DATABASE_HOST","value":"<RDS_ENDPOINT>"},
+        {"name": "DATABASE_PORT","value":"5432"},
+        {"name": "DATABASE_NAME","value":"strapidb"},
+        {"name": "DATABASE_USERNAME","value":"strapiadmin"},
+        {"name": "DATABASE_PASSWORD","value":"<DATABASE_PASSWORD>"},
+        {"name": "DATABASE_SSL","value":"false"},
+        {"name": "APP_KEYS","value":"<APP_KEYS>"},
+        {"name": "API_TOKEN_SALT","value":"<API_TOKEN_SALT>"},
+        {"name": "ADMIN_JWT_SECRET","value":"<ADMIN_JWT_SECRET>"},
+        {"name": "JWT_SECRET","value":"<JWT_SECRET>"}
       ],
       "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/khaleel-strapi",
-          "awslogs-region": "ap-south-1",
-          "awslogs-stream-prefix": "ecs"
+        "logDriver":"awslogs",
+        "options":{
+          "awslogs-group":"/ecs/khaleel-strapi",
+          "awslogs-region":"ap-south-1",
+          "awslogs-stream-prefix":"ecs"
         }
       }
     }

@@ -16,23 +16,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ==============================
-      # Checkout Code
-      # ==============================
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # ==============================
-      # Setup Terraform
-      # ==============================
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
-      # ==============================
-      # Configure AWS Credentials
-      # ==============================
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -40,9 +31,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ==============================
-      # Terraform Init & Validate
-      # ==============================
       - name: Terraform Init
         working-directory: ./Terraform
         run: terraform init
@@ -51,9 +39,6 @@ jobs:
         working-directory: ./Terraform
         run: terraform validate
 
-      # ==============================
-      # Terraform Apply
-      # ==============================
       - name: Terraform Apply
         working-directory: ./Terraform
         run: |
@@ -61,32 +46,20 @@ jobs:
           echo "Deploying ECS Task with image: $IMAGE_URI"
           terraform apply -auto-approve -var="image_uri=$IMAGE_URI"
 
-      # ==============================
-      # Get RDS Endpoint
-      # ==============================
       - name: Get RDS endpoint from Terraform
         id: get-rds
         working-directory: ./Terraform
         shell: bash
         run: |
           RDS_ENDPOINT=$(terraform output -raw rds_endpoint | tr -d '\n' | cut -d':' -f1)
-
-          if [ -z "$RDS_ENDPOINT" ]; then
-            echo "❌ ERROR: RDS endpoint is empty"
-            exit 1
-          fi
-
+          if [ -z "$RDS_ENDPOINT" ]; then exit 1; fi
           echo "rds_host=$RDS_ENDPOINT" >> "$GITHUB_OUTPUT"
 
-      # ==============================
-      # Update Task Definition
-      # ==============================
       - name: Update task definition with dynamic values
         shell: bash
         run: |
           IMAGE_URI="${{ secrets.ECR_REPO }}:${{ github.event.inputs.image_tag }}"
           RDS_ENDPOINT="${{ steps.get-rds.outputs.rds_host }}"
-
           sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" taskdef.json
           sed -i "s|<RDS_ENDPOINT>|$RDS_ENDPOINT|g" taskdef.json
           sed -i "s|<DATABASE_PASSWORD>|${{ secrets.DATABASE_PASSWORD }}|g" taskdef.json
@@ -95,46 +68,23 @@ jobs:
           sed -i "s|<ADMIN_JWT_SECRET>|${{ secrets.ADMIN_JWT_SECRET }}|g" taskdef.json
           sed -i "s|<JWT_SECRET>|${{ secrets.JWT_SECRET }}|g" taskdef.json
 
-      # ==============================
-      # Validate Files (FIXED)
-      # ==============================
       - name: Validate files before packaging
         shell: bash
         run: |
-          if [ ! -f "appspec.yaml" ]; then
-            echo "❌ ERROR: appspec.yaml not found"
-            exit 1
-          fi
-
-          if [ ! -f "taskdef.json" ]; then
-            echo "❌ ERROR: taskdef.json not found"
-            exit 1
-          fi
-
+          if [ ! -f "appspec.yaml" ]; then exit 1; fi
+          if [ ! -f "taskdef.json" ]; then exit 1; fi
           jq empty taskdef.json || exit 1
           grep -q "version: 0.0" appspec.yaml || exit 1
 
-          echo "✅ Validation successful"
-
-      # ==============================
-      # Package Revision
-      # ==============================
       - name: Package AppSpec revision
-        run: |
-          zip -r revision.zip appspec.yaml taskdef.json
+        run: zip -r revision.zip appspec.yaml taskdef.json
 
-      # ==============================
-      # Upload to S3
-      # ==============================
       - name: Upload revision to S3
-        run: |
-          aws s3 cp revision.zip s3://bucket-mku/revision.zip
+        run: aws s3 cp revision.zip s3://bucket-mku/revision.zip
 
-      # ==============================
-      # Trigger CodeDeploy
-      # ==============================
       - name: Start CodeDeploy Blue/Green deployment
         run: |
+          set -e
           aws deploy create-deployment \
             --application-name khaleel-strapi-app \
             --deployment-group-name khaleel-strapi-dg \

@@ -1,42 +1,24 @@
-#################################
-# CodeDeploy Application (ECS)
-#################################
 resource "aws_codedeploy_app" "strapi_app" {
   name             = "khaleel-strapi-app"
   compute_platform = "ECS"
 }
 
-#################################
-# CodeDeploy Deployment Group
-#################################
 resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
   app_name              = aws_codedeploy_app.strapi_app.name
   deployment_group_name = "khaleel-strapi-dg"
-
-
-  service_role_arn = data.aws_iam_role.codedeploy_role.arn
-
+  service_role_arn      = data.aws_iam_role.codedeploy_role.arn
   deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
 
-  #################################
-  # Deployment Style (Required for ECS)
-  #################################
   deployment_style {
-    deployment_type = "BLUE_GREEN"
+    deployment_type   = "BLUE_GREEN"
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
-  #################################
-  # ECS Service Mapping
-  #################################
   ecs_service {
     cluster_name = aws_ecs_cluster.khaleel_strapi_cluster.name
     service_name = aws_ecs_service.khaleel_strapi_service.name
   }
 
-  #################################
-  # Blue / Green Configuration
-  #################################
   blue_green_deployment_config {
     terminate_blue_instances_on_deployment_success {
       action                           = "TERMINATE"
@@ -48,9 +30,6 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
     }
   }
 
-  #################################
-  # Load Balancer Configuration
-  #################################
   load_balancer_info {
     target_group_pair_info {
       target_group {
@@ -67,16 +46,9 @@ resource "aws_codedeploy_deployment_group" "strapi_deployment_group" {
     }
   }
 
-  #################################
-  # Auto Rollback
-  #################################
   auto_rollback_configuration {
     enabled = true
-    events  = [
-      "DEPLOYMENT_FAILURE",
-      "DEPLOYMENT_STOP_ON_ALARM",
-      "DEPLOYMENT_STOP_ON_REQUEST"
-    ]
+    events  = ["DEPLOYMENT_FAILURE","DEPLOYMENT_STOP_ON_ALARM","DEPLOYMENT_STOP_ON_REQUEST"]
   }
 
   depends_on = [
